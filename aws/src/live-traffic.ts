@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {eligibleOffers,eligibleTransfers,impactFor,planIncident,planConditions,liveRouteKey,type Catalog,type Conditions,type LiveRouting} from './incident-engine';
 
-export const trafficChoice=z.object({candidateId:z.enum(['start-time','start-cost','wait-30']),reason:z.string().min(1).max(650),tradeoffs:z.array(z.string().min(1).max(260)).min(1).max(4)}).strict();
+export const trafficChoice=z.object({candidateId:z.enum(['start-time','start-cost','wait-30']),reasonCode:z.enum(['earlier_delivery','lower_cost','balanced_tradeoff'])}).strict();
 export function departureAt(start:string,wait:number,preparation:number){return new Date(Date.parse(start)+(wait+preparation)*60000).toISOString();}
 export function parseRouteMatrix(raw:unknown,destinations:{id:number}[]){
  if(!Array.isArray(raw)||raw.length!==destinations.length)throw new Error('Google returned an incomplete route matrix; comparison was not calculated');
@@ -53,5 +53,12 @@ export function validateTrafficChoice(candidates:Awaited<ReturnType<typeof compa
  const mostPacks=Math.max(...candidates.map(c=>c.metrics.allocatedUnits));
  const mostPriority=Math.max(...candidates.filter(c=>c.metrics.allocatedUnits===mostPacks).map(c=>c.metrics.priorityAllocated));
  if(candidate.metrics.allocatedUnits!==mostPacks||candidate.metrics.priorityAllocated!==mostPriority)throw new Error('AI selected an alternative with avoidable shortage; no recommendation accepted');
- return choice;
+ const valid=candidates.filter(c=>c.metrics.allocatedUnits===mostPacks&&c.metrics.priorityAllocated===mostPriority),m=candidate.metrics;
+ if(choice.reasonCode==='earlier_delivery'&&(m.averageDeliveryMinutes??Infinity)!==Math.min(...valid.map(c=>c.metrics.averageDeliveryMinutes??Infinity)))throw new Error('AI delivery-time justification did not match calculated results');
+ if(choice.reasonCode==='lower_cost'&&m.cost!==Math.min(...valid.map(c=>c.metrics.cost)))throw new Error('AI cost justification did not match calculated results');
+ const reason=choice.reasonCode==='earlier_delivery'?'Bedrock selected the alternative with the lowest pack-weighted average delivery time among options preserving maximum total and priority-store fulfillment.':choice.reasonCode==='lower_cost'?'Bedrock selected the lowest modeled cost among options preserving maximum total and priority-store fulfillment.':'Bedrock selected this balance of delivery time and modeled cost while preserving maximum total and priority-store fulfillment.';
+ const signed=(n:number)=>`${n>0?'+':''}${Math.round(n*10)/10}`;
+ // Render quantitative explanations from verified results, not free-form model claims.
+ const tradeoffs=candidates.filter(c=>c.id!==candidate.id).map(c=>`${c.title}: ${signed(c.metrics.allocatedUnits-m.allocatedUnits)} supplied packs, ${signed(c.metrics.cost-m.cost)} USD modeled cost${c.metrics.averageDeliveryMinutes!==null&&m.averageDeliveryMinutes!==null?`, ${signed(c.metrics.averageDeliveryMinutes-m.averageDeliveryMinutes)} min average delivery`:''} versus the recommendation; ${c.waitMinutes} min initial wait.`);
+ return {...choice,reason,tradeoffs};
 }
