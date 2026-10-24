@@ -108,3 +108,13 @@ This is bounded AI proposal and decision support, not unrestricted action discov
 API actions: `suggest_incident` (async; id + planId) and `adopt_suggestion` (id + suggestionId + candidateId). Conditional DynamoDB writes protect the current catalog and incident during both saves.
 
 Live acceptance scenario: chicken demand 1,022 packs; suppliers A/B/D capped at 200 each; transfers off gives 600 packs (58.7%). Bedrock proposed enabling safe same-chain transfers and recommended the computed alternative: 988 packs (96.7%), 34 still unfilled, modeled cost $4,943 → $7,812, last delivery 547 → 569 minutes. These are synthetic planning results, not fulfilled deliveries. Other scenarios may yield no improving alternative.
+
+## Regional traffic and priority-store context
+
+Operational instructions now support `regionalTraffic` (named region + multiplier 1–3) and `priorityStoreIds` (affected stores only). Named regions use explicit city groups in `incident-engine.ts`. A region factor applies to trips with an origin or destination in that group; the largest applicable regional/global factor is used. This is operator-reported scenario data, not live or historical traffic, a road closure, or highway avoidance. Delayed driving also counts against the same-chain transfer travel limit.
+
+When priorities are present, the flow objective first maximizes total supplied packs, then supplied packs for designated stores, then minimizes the chosen time/cost metric. It does not schedule vehicle departure or promise priority arrival. The dashboard shows priority stores' previous and current quantities, which may change while total coverage stays constant. AI Special Suggestion preserves these conditions and cannot recommend a candidate with fewer supplied priority-store packs.
+
+New fields default to empty for older plan snapshots. A narrow deterministic check also enforces explicit instructions of the form “Suppliers A, B and D can each supply at most 200 packs”, preventing an AI supplier-letter/list-index error from dropping a stated ceiling. These checks are recorded in the planning audit; they are not independent AI discoveries.
+
+A Google Routes integration is not yet active. `aws/.local/maps.env` is a Git-ignored, mode-600 placeholder for a server-only `GOOGLE_ROUTES_API_KEY`; it must not be exposed in frontend environment variables. Time-dependent real traffic remains pending API setup and validation.

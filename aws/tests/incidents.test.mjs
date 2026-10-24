@@ -176,3 +176,11 @@ test('changed plan or catalog prevents stale suggestion adoption',async()=>{
  await call({action:'update_stock',offerId:4,availableUnits:49,expectedVersion:ws.catalog.version,reference:'Synthetic stock update during comparison.'});
  assert.equal((await handler(event({action:'adopt_suggestion',id:row.id,suggestionId:s.id,candidateId:s.candidateId}))).statusCode,400);
 });
+
+test('regional traffic and priority survive async planning, version persistence and revalidation',async()=>{
+ conditions={...basicConditions(),regionalTraffic:[{region:'North Bay',multiplier:2}],priorityStoreIds:[2],capacityLimits:[1,2,4].map(supplierId=>({supplierId,availableUnits:50}))};
+ const row=await ai({action:'plan_incident',id:chicken.id,message:'North Bay driving is 2x slower; prioritize store #2 for available stock.'});
+ assert.deepEqual(row.plan.conditions.regionalTraffic,conditions.regionalTraffic);assert.deepEqual(row.plan.conditions.priorityStoreIds,[2]);assert.ok(row.plan.prioritySummary.allocatedUnits>0);
+ assert.ok(lastInterpretation.affectedStores.some(s=>s.id===2));assert.ok(lastInterpretation.trafficRegions['North Bay'].includes('Napa'));
+ const ws=await call({action:'workspace',id:row.id,planId:row.plan.id});assert.equal(ws.selected.planCurrent,true);assert.deepEqual(ws.selectedVersion.plan.prioritySummary,row.plan.prioritySummary);
+});

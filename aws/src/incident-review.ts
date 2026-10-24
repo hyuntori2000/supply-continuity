@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {planConditions,type Catalog,type Conditions,planIncident} from './incident-engine';
+import {planConditions,type Catalog,type Conditions,planIncident,impactFor} from './incident-engine';
 
 export const reviewSchema=z.object({
  verdict:z.enum(['consistent','revise','needs_clarification']),
@@ -16,8 +16,26 @@ export function normalizeDisplayRequests(conditions:Conditions):Conditions {
 }
 
 export function validateConditions(c:Catalog,lotId:number,conditions:Conditions){
+ const affected=new Set(impactFor(c,lotId).targets.map(t=>t.id));
+ if((conditions.priorityStoreIds||[]).some(id=>!affected.has(id)))throw new Error('Priority store is not affected by this incident');
  const product=c.lots.find(l=>l.id===lotId)?.product_id;
  if([...conditions.blockedSupplierIds,...conditions.capacityLimits.map(x=>x.supplierId)].some(id=>!c.offers.some(o=>o.farm_id===id&&o.product_id===product)))throw new Error('AI selected an unknown supplier; no proposal saved');
+}
+
+// Validate explicit, common ceiling instructions independently of model reasoning.
+// This checks a narrow unambiguous form; it does not replace general AI parsing.
+export function explicitCeilings(request:string){
+ const limits=new Map<number,number>();
+ const pattern=/suppliers?\s+([A-F](?:(?:\s*,\s*|\s+(?:and|&)\s+)[A-F])*)\s+can\s+each\s+supply\s+at\s+most\s+(\d+)\s+packs/gi;
+ for(const match of request.matchAll(pattern))for(const letter of match[1].toUpperCase().match(/\b[A-F]\b/g)||[])limits.set(letter.charCodeAt(0)-64,Number(match[2]));
+ return limits;
+}
+export function enforceExplicitCeilings(request:string,conditions:Conditions){
+ const limits=explicitCeilings(request);if(!limits.size)return conditions;
+ return planConditions.parse({...conditions,capacityLimits:[...conditions.capacityLimits.filter(c=>!limits.has(c.supplierId)),...[...limits].map(([supplierId,availableUnits])=>({supplierId,availableUnits}))]});
+}
+export function validateExplicitCeilings(request:string,conditions:Conditions){
+ for(const [supplierId,expected] of explicitCeilings(request))if(!conditions.capacityLimits.some(c=>c.supplierId===supplierId&&c.availableUnits===expected))throw new Error(`Explicit supplier ${String.fromCharCode(64+supplierId)} (ID ${supplierId}) ceiling must be ${expected} packs`);
 }
 
 // One bounded revision, grounded in the latest operator instruction. Safety,
@@ -29,7 +47,7 @@ export function applyPlanReview(c:Catalog,lotId:number,request:string,draft:Cond
  if(review.verdict==='revise'){
   const quote=review.amendmentEvidence?.trim();
   if(!review.revisedConditions)throw new Error('Review correction requires complete conditions.');
-  const operationalFields=['objective','trafficMultiplier','blockedSupplierIds','capacityLimits','allowStoreTransfers','maxTransferMinutes'] as const;
+  const operationalFields=['priorityStoreIds','regionalTraffic','objective','trafficMultiplier','blockedSupplierIds','capacityLimits','allowStoreTransfers','maxTransferMinutes'] as const;
   const operationalChange=operationalFields.some(key=>JSON.stringify(draft[key])!==JSON.stringify(review.revisedConditions![key]));
   if(operationalChange&&(!quote||quote.length<8||!request.toLowerCase().includes(quote.toLowerCase())))throw new Error('Review correction lacks a matching operator instruction. Clarify the request and retry.');
   // Descriptive metadata may be corrected without granting different stock,
@@ -38,6 +56,7 @@ export function applyPlanReview(c:Catalog,lotId:number,request:string,draft:Cond
  }
  // Some models echo draft fields even for a consistent verdict. They are never
  // applied: only an explicit, grounded revise verdict can change conditions.
+ conditions=enforceExplicitCeilings(request,conditions);
  validateConditions(c,lotId,conditions);
  const plan=planIncident(c,lotId,conditions);
  const total=plan.allocations.reduce((n,a)=>n+a.units,0);
