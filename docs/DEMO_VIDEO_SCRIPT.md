@@ -106,3 +106,5 @@ Current network/version demo additions:
 - Open Plan versions, preview the earlier 600-pack calculation, and explain that viewing history does not apply it. “Use V… as starting point” creates a new branch on the next agent run; it never overwrites that saved calculation.
 - The Romaine investigation and 95-pack newly registered Tomato lot have different scopes. Do not describe every product as having 27 affected stores or claim automatic recovery before a proposal exists.
 - State that the second Bedrock review is a bounded request/plan consistency check. It may correct a supported condition once, or request clarification; it is not model training, guaranteed improvement, or unlimited self-reflection.
+
+Use the network stages as the story's backbone: **Original supply** (all recorded stores for the chosen product) → **Interrupted** (this incident's lot scope, unaffected stores muted) → **Recovery** (new supplier assignments, quantities and shortage). The original network is reconstructed from records; do not call it a captured real-time pre-incident snapshot. A successful agent run advances the map to Recovery automatically.

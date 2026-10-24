@@ -69,3 +69,11 @@ Unrelated catalog revision changes no longer hide a still-valid plan. The server
 Shared supplier inventory is not reserved across incidents. Separate case plans are alternatives/simulations and must not be summed into simultaneous executable orders. Versioning prevents calculation overwrites, not physical inventory overbooking.
 
 Map tiles use OpenStreetMap with a CSS dark treatment; the CARTO endpoint returned an API-key-required placeholder during visual testing and was removed. Bounded review requires a verbatim operator quote for changes to objective, driving multiplier, supplier exclusions or capacity ceilings. Descriptive assumption/unsupported-request metadata can be cleaned without changing those operational fields. Unsupported-request text is rebuilt from the latest instruction rather than carried indefinitely from old plans.
+
+### Normal distribution → incident → reallocation
+
+Original supply now reconstructs the **whole selected product network** from current inventory and pending/in-transit shipments, including stores outside the selected incident. It follows lot ancestry per store instead of drawing every supplier to every store. Interrupted narrows the emphasized scope to affected descendants and replacement demand, while unaffected stores remain muted. Recovery shows the saved replacement allocation with unaffected stores still visible. Switching cases begins at Original supply; a newly generated plan automatically advances to Recovery. Product-wide original stock totals and incident replacement needs are deliberately labeled separately.
+
+This baseline is reconstructed from recorded distribution, not a timestamped historical inventory snapshot or proof that every original lot was safe. Mixed-lot source proportions are unknown. No quantities are invented for those traced source relationships. True historical replay and simultaneous stock reservation remain future work.
+
+Legacy narrative assumptions are not inherited into a new AI request: numeric operational conditions are inherited and descriptions regenerated. Review summary/finding text is bounded for display before validation; verdict, numeric conditions and amendment evidence retain validation. This avoids a verbose model explanation failing an otherwise valid plan.

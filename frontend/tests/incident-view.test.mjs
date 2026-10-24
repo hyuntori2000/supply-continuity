@@ -24,3 +24,10 @@ test('map totals match case allocations and retailer filters, with no stale reco
  assert.equal(networkProjection(c,{...i,planCurrent:false},'recovery','All chains').allocations.length,0);
  const original=networkProjection(c,i,'original','All chains');assert.equal(original.allocations.length,0);assert.equal(original.sources.length,2);
 });
+test('normal distribution includes unaffected stores and incident phases isolate disrupted demand',()=>{
+ const c={version:1,products:[{id:1}],lots:[{id:1,product_id:1,farm_id:1},{id:2,product_id:1,farm_id:2}],inputs:[],farms:[{id:1},{id:2}],stores:[{id:1,chain:'Target'},{id:2,chain:'Walmart'}],inventory:[{store_id:1,lot_id:1,quantity:50},{store_id:2,lot_id:2,quantity:70}],shipments:[]};
+ const i={lotId:1,impact:{product:{id:1},originFarms:[{id:1}],targets:[{id:1,chain:'Target',needUnits:50}],heldUnits:50,inboundUnits:0}};
+ const original=networkProjection(c,i,'original','All chains');assert.equal(original.stores.length,2);assert.equal(original.required,120);assert.deepEqual(original.stores[0].sourceIds,[1]);assert.deepEqual(original.stores[1].sourceIds,[2]);
+ const interrupted=networkProjection(c,i,'interrupted','All chains');assert.equal(interrupted.required,50);assert.equal(interrupted.stores.length,1);assert.deepEqual(interrupted.unaffected.map(s=>s.id),[2]);
+ const recovery=networkProjection(c,i,'recovery','All chains');assert.equal(recovery.allocated,0);assert.equal(recovery.unaffected.length,1);
+});

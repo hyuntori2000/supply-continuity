@@ -20,10 +20,10 @@ test('capacity, expired lots, provenance and unsafe ancestors cannot be bypassed
 test('all products retain conservation across capacity and transport scenarios',()=>{for(const lot of [3,8,13])for(const stock of [0,50,500])for(const trafficMultiplier of [1,2,3]){const c=initialCatalog();c.offers.forEach(o=>o.available_units=stock);const p=planIncident(c,lot,{...basicConditions(),trafficMultiplier},date);assert.equal(p.allocatedUnits+p.unfilledUnits,p.requiredUnits);assert.equal(p.allocations.reduce((n,a)=>n+a.units,0),p.allocatedUnits);for(const o of p.offers)assert.ok(p.allocations.filter(a=>a.supplierId===o.farm_id).reduce((n,a)=>n+a.units,0)<=o.available);}});
 
 process.env.DEMO_ACCESS_HASH=createHash('sha256').update('independent-test').digest('hex');process.env.ALLOWED_ORIGINS='https://independent.example';process.env.TABLE_NAME='test';process.env.AWS_REGION='us-east-1';process.env.AWS_ACCESS_KEY_ID='TEST';process.env.AWS_SECRET_ACCESS_KEY='TEST';process.env.AWS_LAMBDA_FUNCTION_NAME='test';
-const originalFetch=globalThis.fetch,db=new Map(),workers=[];let extraction={product:'Chicken',lotCode:'DEMO-P2-BLEND-A',summary:'Fictional complaint; no causal finding.'},conditions=basicConditions(),reviewOverride=null;
+const originalFetch=globalThis.fetch,db=new Map(),workers=[];let extraction={product:'Chicken',lotCode:'DEMO-P2-BLEND-A',summary:'Fictional complaint; no causal finding.'},conditions=basicConditions(),reviewOverride=null,lastInterpretation=null;
 const key=i=>i.pk.S+'|'+i.sk.S;
 globalThis.fetch=async(input,init)=>{const req=input instanceof Request?input:new Request(input,init),host=new URL(req.url).hostname,b=JSON.parse(await req.text());
- if(host.startsWith('bedrock-runtime.')){const name=b.toolConfig.toolChoice.tool.name;return Response.json({output:{message:{content:[{toolUse:{name,input:name==='extract_report'?extraction:name==='review_recovery_plan'?(reviewOverride||{verdict:'consistent',summary:'The draft follows the operator request.',findings:['Stock limits and remaining shortage checked.'],revisedConditions:null,amendmentEvidence:null}):conditions}}]}}});}
+ if(host.startsWith('bedrock-runtime.')){const name=b.toolConfig.toolChoice.tool.name;if(name==='apply_recovery_conditions')lastInterpretation=JSON.parse(b.messages[0].content[0].text);return Response.json({output:{message:{content:[{toolUse:{name,input:name==='extract_report'?extraction:name==='review_recovery_plan'?(reviewOverride||{verdict:'consistent',summary:'The draft follows the operator request.',findings:['Stock limits and remaining shortage checked.'],revisedConditions:null,amendmentEvidence:null}):conditions}}]}}});}
  if(host.startsWith('lambda.')){workers.push(b);return new Response('',{status:202});}
  const action=req.headers.get('x-amz-target')?.split('.').pop();
  if(action==='GetItem')return Response.json({Item:db.get(key(b.Key))});
@@ -127,4 +127,19 @@ test('review may clean descriptive metadata without changing operational constra
  const row=await ai({action:'plan_incident',id:chicken.id,message:'Generate a safe recovery plan.'});
  assert.equal(row.plan.allocatedUnits,50);assert.deepEqual(row.plan.conditions.unappliedRequests,[]);
  conditions=basicConditions();reviewOverride=null;
+});
+
+test('replanning inherits numeric conditions but discards contradictory historical narrative',async()=>{
+ const stored=db.get('INCIDENT|'+chicken.id),row=JSON.parse(stored.data.S);
+ row.plan.conditions.assumptions=['Assuming 1.5 delay although the numeric multiplier is 1.'];
+ row.plan.conditions.unappliedRequests=['An old unrelated request'];
+ db.set('INCIDENT|'+chicken.id,{...stored,data:{S:JSON.stringify(row)}});
+ await ai({action:'plan_incident',id:chicken.id,message:'Generate a recovery plan minimizing delivery time.'});
+ assert.equal(lastInterpretation.currentConditions.trafficMultiplier,1);
+ assert.deepEqual(lastInterpretation.currentConditions.assumptions,[]);
+ assert.deepEqual(lastInterpretation.currentConditions.unappliedRequests,[]);
+});
+test('overlong reviewer display text cannot break a valid structured calculation',async()=>{
+ conditions=basicConditions();reviewOverride={verdict:'consistent',summary:'Verified numerical conditions. '.repeat(50),findings:['A descriptive finding. '.repeat(40)],revisedConditions:null,amendmentEvidence:null};
+ const row=await ai({action:'plan_incident',id:chicken.id,message:'Generate a safe recovery plan.'});assert.equal(row.plan.allocatedUnits,50);assert.ok(row.planAudit.reflection.summary.length<=600);assert.ok(row.planAudit.reflection.findings[0].length<=300);reviewOverride=null;
 });

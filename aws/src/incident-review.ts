@@ -6,7 +6,7 @@ export const reviewSchema=z.object({
  summary:z.string().min(1).max(600),
  findings:z.array(z.string().min(1).max(300)).max(6),
  revisedConditions:planConditions.nullable().default(null),
- amendmentEvidence:z.string().max(600).nullable().default(null),
+ amendmentEvidence:z.string().max(2000).nullable().default(null),
 }).strict();
 
 export function normalizeDisplayRequests(conditions:Conditions):Conditions {
@@ -45,4 +45,12 @@ export function applyPlanReview(c:Catalog,lotId:number,request:string,draft:Cond
  for(const store of plan.stores)if(store.receivedUnits>store.needUnits)throw new Error('Store demand exceeded');
  for(const offer of plan.offers)if(plan.allocations.filter(a=>a.supplierId===offer.farm_id).reduce((n,a)=>n+a.units,0)>offer.available)throw new Error('Supplier capacity exceeded');
  return {plan,conditions,review,changed:JSON.stringify(conditions)!==JSON.stringify(draft)};
+}
+
+// Display text length must not turn a valid structured review into an outage.
+// Operational constraints, verdict and quote evidence are never repaired here.
+export function boundedReviewText(raw:any){
+ if(!raw||typeof raw!=='object')return raw;
+ const shorten=(value:any,max:number)=>typeof value==='string'&&value.length>max?value.slice(0,max-1)+'…':value;
+ return {...raw,summary:shorten(raw.summary,600),findings:Array.isArray(raw.findings)?raw.findings.slice(0,6).map((v:any)=>shorten(v,300)):raw.findings};
 }
