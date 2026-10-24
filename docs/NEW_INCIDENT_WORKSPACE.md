@@ -1,14 +1,18 @@
-# Independent incident workspace (v2)
+# Unified incident dashboard (v3)
 
-Open **New incident workspace** in the deployed FoodTraceAI dashboard. It handles new reports without requiring an E01 match. The original recovery demo remains available for its richer regional-delay, direct-lane and same-chain-transfer scenarios.
+The application root is now the incident dashboard. There is no separate E01 calculator behind the first page: reporting, product selection, traceback, planning, review, approval and export all use the same `INCIDENT` record, versioned DynamoDB catalog and `aws/src/incident-engine.ts` allocator through `/api/cases`.
+
+Choose **Romaine**, **Raw Chicken** or **Tomatoes** to filter the incident inbox and open that product’s newest case. Choose a specific case in the inbox to update all metrics, maps, allocation rows and timeline together. Products without incidents show recorded supply locations, not a fabricated recovery plan. **All incidents** includes unmatched reports. **New incident** opens intake within this same dashboard; submitting automatically selects the newly saved case. The selected ID survives refresh through the URL and session selection.
+
+The older E01-specific frontend calculator and controls are no longer mounted by `frontend/src/App.tsx`. Legacy endpoints and source are retained for compatibility and regression tests, but their numbers are not merged into new incidents. The previous same-chain, regional-delay and direct-dispatch demo controls are not exposed in the unified UI until they can use this authoritative multi-product engine.
 
 ## End-to-end demo
 
-1. Select **DEMO Raw Chicken 1 kg** or **DEMO Tomatoes 1 kg** and click **Fill example report** (or enter a report with a registered lot and receiving store).
+1. Click **New incident**, select **DEMO Raw Chicken 1 kg** or **DEMO Tomatoes 1 kg** and click **Fill example report** (or enter a report with a registered lot and receiving store).
 2. **Submit & analyze new incident** saves a new independent UUID before calling Amazon Bedrock. Bedrock extracts the literal product/lot; the server verifies the identifier and its store record. A report alone is never a contamination finding.
 3. Record a **precautionary hold** with a synthetic evidence reference, or explicitly attest a synthetic positive lot test. This writes a demo hold for the lot and its downstream descendants. Upstream farms are traceability candidates, not automatically blamed. No physical stop is sent.
 4. **Run recovery agent** loads current DB records, invokes Bedrock to interpret supported operational conditions, validates exact-product lot provenance and safety, computes shared-capacity min-cost allocations, and saves a proposal.
-5. Review coverage, quantities, unmet demand, cost, modeled ETA, affected-store map, source lots and tool evidence. Approve/reject the demo proposal; acknowledgement is required for unmet demand.
+5. Bedrock runs a second review against the operator instruction. A supported interpretation correction can trigger one recalculation through the same engine; an ambiguous request stops without replacing the prior saved plan. Review coverage, quantities, unmet demand, cost, modeled ETA, affected-store map, source lots and tool evidence. Approve/reject the demo proposal; acknowledgement is required for unmet demand.
 6. Refresh/reopen `#incidents/<id>` to retrieve the same report, evidence, plan, decision and timeline from DynamoDB.
 
 ## Registering a previously unknown lot
@@ -21,14 +25,14 @@ New products must already exist in the catalog (romaine, raw chicken and tomatoe
 
 The v2 catalog, inventory availability, lot graph, shipments and safety records are stored in DynamoDB under a versioned `CATALOG` item initialized once from the supplied synthetic dataset. The browser reads the DB response; it does not render a static fallback. Reports and their evidence/plans/timelines are separate persisted `INCIDENT` items. Stock updates require an operator reference and the expected catalog version.
 
-This is **database-backed synthetic operations**, not a live retailer ERP, laboratory, FDA or carrier integration. Store coordinates are public locations; supplier coordinates, inventory, incidents, approvals and operating assumptions are synthetic. Existing E01 screens still use their original demo catalog; the v2 workspace labels its own DB revision explicitly.
+This is **database-backed synthetic operations**, not a live retailer ERP, laboratory, FDA or carrier integration. Store coordinates are public locations; supplier coordinates, inventory, incidents, approvals and operating assumptions are synthetic. The unified dashboard labels the DB revision explicitly and does not call the legacy E01 calculation endpoints.
 
 ## Planning scope
 
 - Exact-product replacements with known lot provenance, released lot/ancestors, unexpired stock, mock supplier approval and mock cold-chain verification.
 - Replacement demand is affected on-hand packs plus separate planned/scheduled/in-transit store shipments. Delivered shipments are not counted twice.
 - Supplier available units are uncommitted packs. Bedrock may lower their planning ceiling, but cannot manufacture stock or increase the DB's stock record.
-- Supported AI updates: supplier availability, per-supplier spare-stock ceilings, time/cost objective, global driving multiplier. Unsupported regional routing, highway avoidance, same-chain transfers, arbitrary deadlines or product substitution are explicitly reported as unapplied in this workspace. Those supported in the original recovery demo remain there.
+- Supported AI updates: supplier availability, per-supplier spare-stock ceilings, time/cost objective, global driving multiplier. Unsupported regional routing, highway avoidance, same-chain transfers, arbitrary deadlines or product substitution are explicitly reported as unapplied in this workspace. Historical E01-only controls are not part of the unified dashboard.
 - Stored road estimates plus supplier processing lead time produce delivery estimates. Map lines are allocation flows, not actual road paths. There is no live traffic service.
 - Each incident plan is independent and makes **no stock reservation**. Multiple proposed or approved demo plans must not be interpreted as simultaneous executable orders. Fleet scheduling and cross-incident reservations are out of scope.
 
@@ -45,3 +49,23 @@ The existing authenticated `/api/cases` route handles v2 actions: `workspace`, `
 - Sanitized live evidence: `docs/verification/independent-incidents.json`.
 - Browser acceptance on the deployed Amplify app: submitted a new chicken report, recorded a synthetic precautionary hold, generated a 1,022 / 1,022 pack proposal, approved it, then refreshed and confirmed the same incident, allocations and approved timeline were restored from DynamoDB.
 - The first live planning test exposed a missing permission for a DynamoDB ConditionCheck operation. It was replaced by an equivalent compare-and-write transaction using the existing permission scope, then the live suite passed. No IAM policy was broadened.
+
+## Bounded agent review
+
+Every new proposal uses two actual Bedrock calls: condition extraction, then `review_recovery_plan`. The reviewer sees the latest instruction, interpreted constraints, computed shortage and eligible offer capacity. It returns a concise assessment, findings, and optionally corrected conditions grounded in an exact quote from the request. One correction is allowed; no recursive retry loop is used. Server schemas, known-supplier checks and the same deterministic planner enforce safety, capacity and conservation. The final catalog/incident transaction and human approval remain mandatory.
+
+The UI shows review outcome and draft/final allocated quantities. A correction is not necessarily a coverage increase: honoring a missed capacity limit can reduce allocation. A consistent plan reports that no additional improvement is claimed. Review failure or clarification leaves the previous proposal unchanged. This is bounded self-review, not model retraining or guaranteed global optimality.
+
+### Version history and restored supply network
+
+The dashboard retains Original supply / Interrupted / Recovery tabs, a map/relationships switch, chain filtering, permanent supplier quantity labels, and per-supplier allocation cards. All of them project the selected incident's saved plan. Original/interrupted dashed lines show ancestry relationships, not known per-source quantities; source shares were not recorded. Recovery lines show exact proposed pack allocations and saved road distance/ETA. Current seed products use 1 kg packs. No same-chain transfer toggle is exposed in this unified engine yet.
+
+Each successful agent calculation is saved in a separate DynamoDB item under `INCIDENTPLAN#<incidentId>`, with plan ID, sequential version, parent plan ID, impact, conditions, allocations, comparison baseline and Bedrock audit. Existing latest plans are preserved as V0 when the next version is created. This cannot recover versions overwritten before version storage existed. The current incident holds the current-plan pointer/content. Calculation snapshots are immutable; current approval status remains on the incident and event timeline. Historical snapshots retain their status at calculation time.
+
+History previews never change current dashboard values. Selecting “Use V… as starting point” supplies that incident's plan ID to the next agent request. Conditions are inherited but recalculated against current operational records. A conditional transaction saves both the snapshot and new current plan, rejecting concurrent conflicting updates. Another incident's plan cannot be used as a base. The UI lists up to 100 recent versions; records remain stored separately.
+
+Unrelated catalog revision changes no longer hide a still-valid plan. The server recomputes the selected incident using its saved conditions, and compares all product, demand, supply eligibility, allocation, cost and ETA fields. Relevant changes still invalidate it and prevent approval. This fixes the 95-pack single-store tomato case disappearing after a different product changed. The Romaine case with 1,587 packs across 18 stores is still investigating; no recovery allocations are fabricated before evidence review and planning.
+
+Shared supplier inventory is not reserved across incidents. Separate case plans are alternatives/simulations and must not be summed into simultaneous executable orders. Versioning prevents calculation overwrites, not physical inventory overbooking.
+
+Map tiles use OpenStreetMap with a CSS dark treatment; the CARTO endpoint returned an API-key-required placeholder during visual testing and was removed. Bounded review requires a verbatim operator quote for changes to objective, driving multiplier, supplier exclusions or capacity ceilings. Descriptive assumption/unsupported-request metadata can be cleaned without changing those operational fields. Unsupported-request text is rebuilt from the latest instruction rather than carried indefinitely from old plans.

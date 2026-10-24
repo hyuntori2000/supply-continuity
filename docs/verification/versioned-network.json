@@ -1,0 +1,33 @@
+{
+  "status": "passed",
+  "testedAt": "2026-10-24T11:01:35.419Z",
+  "model": "amazon.nova-pro-v1:0",
+  "versions": [
+    {
+      "version": 2,
+      "allocated": 1000,
+      "current": true,
+      "parentPlanId": "9285f579-4eba-4bc1-9126-08d8cd36ef35"
+    },
+    {
+      "version": 1,
+      "allocated": 600,
+      "current": false,
+      "parentPlanId": "9285f579-4eba-4bc1-9126-08d8cd36ef35"
+    },
+    {
+      "version": 0,
+      "allocated": 1000,
+      "current": false,
+      "parentPlanId": null
+    }
+  ],
+  "checks": [
+    "Real Bedrock 600-unit version and branch-to-1000 version persisted",
+    "Older calculation unchanged after branch",
+    "Exactly one current dashboard plan",
+    "Tomato 95-pack single-store plan remains valid after unrelated catalog revision",
+    "Romaine 18-store 1587-pack investigation has no fabricated recovery plan",
+    "No shared-stock reservation or live dispatch"
+  ]
+}

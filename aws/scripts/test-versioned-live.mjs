@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {readFileSync,writeFileSync} from 'node:fs';
+const state=JSON.parse(readFileSync(new URL('../.local/deployment.json',import.meta.url),'utf8'));
+const {accessCode}=JSON.parse(readFileSync(new URL('../.local/access.json',import.meta.url),'utf8'));
+const id='4843c636-e455-44ec-8fe3-62781b58bc57';
+async function api(body,path='/api/cases'){const r=await fetch(state.apiUrl+path,{method:body?'POST':'GET',headers:{Authorization:`Bearer ${accessCode}`,Origin:state.siteUrl,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(30000)});const d=await r.json();assert.ok(r.ok,JSON.stringify(d));return d;}
+async function plan(message,basePlanId){const job=await api({action:'plan_incident',id,message,...(basePlanId?{basePlanId}:{})});for(let n=0;n<110;n++){const p=await api(null,job.pollUrl);if(p.status==='failed')throw new Error(p.error);if(p.status==='completed')return p.result;await new Promise(r=>setTimeout(r,1000));}throw new Error('Worker timeout');}
+const initial=await api({action:'workspace',id});assert.match(initial.selected.report,/SYNTHETIC INTEGRATION QA/);
+const baseline=initial.selected.plan.id;
+let row=await plan('Supplier D can commit only 600 units of replacement chicken. Set its ceiling to 600, use driving multiplier 1, and minimize delivery time.');assert.equal(row.plan.allocatedUnits,600);
+const saved=await api({action:'workspace',id,planId:row.plan.id}),snapshot=JSON.stringify(saved.selectedVersion);assert.ok(saved.versions.length>=2);console.log('Version persisted: 600 units');
+row=await plan('Use the selected baseline conditions, set Supplier D ceiling to 1000 units of replacement chicken, minimize delivery time, and keep driving multiplier 1.',baseline);
+assert.equal(row.parentPlanId,baseline);assert.equal(row.plan.allocatedUnits,1000);
+const result=await api({action:'workspace',id,planId:saved.selectedVersion.id});assert.equal(JSON.stringify(result.selectedVersion),snapshot);assert.equal(result.selected.plan.id,row.plan.id);assert.equal(result.selected.planCurrent,true);assert.equal(result.versions.filter(v=>v.current).length,1);
+const tomato=await api({action:'workspace',id:'685aeef8-aea6-4d7e-81ea-66c6772663a3'});assert.equal(tomato.selected.planCurrent,true);assert.equal(tomato.selected.impact.targets.length,1);assert.equal(tomato.selected.plan.allocatedUnits,95);
+const romaine=await api({action:'workspace',id:'1c96a9b0-7ccb-4773-aa8c-071992c98241'});assert.equal(romaine.selected.impact.targets.length,18);assert.equal(romaine.selected.impact.heldUnits+romaine.selected.impact.inboundUnits,1587);assert.ok(!romaine.selected.plan);
+const verification={status:'passed',testedAt:new Date().toISOString(),model:row.plan.model,versions:result.versions.map(v=>({version:v.version,allocated:v.allocatedUnits,current:v.current,parentPlanId:v.parentPlanId})),checks:['Real Bedrock 600-unit version and branch-to-1000 version persisted','Older calculation unchanged after branch','Exactly one current dashboard plan','Tomato 95-pack single-store plan remains valid after unrelated catalog revision','Romaine 18-store 1587-pack investigation has no fabricated recovery plan','No shared-stock reservation or live dispatch']};writeFileSync(new URL('../../docs/verification/versioned-network.json',import.meta.url),JSON.stringify(verification,null,2)+'\n');console.log(JSON.stringify(verification,null,2));

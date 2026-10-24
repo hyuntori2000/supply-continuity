@@ -1,5 +1,7 @@
 # Five-minute demo video: FoodTraceAI
 
+> **Current v3 recording path:** Start at the main dashboard → Raw Chicken → New incident → Fill example report → Submit & analyze new incident → Record reviewed evidence & demo hold → Run recovery agent (600-unit limit) → Run recovery agent (1,000-unit limit) → inspect Agent self-review, road distances and allocation map → acknowledge shortage → Approve demo proposal. The main KPI cards update after each saved result. Switch Romaine / Raw Chicken / Tomatoes to demonstrate incident isolation. Old instructions below referring to a separate Recovery demo or New incident workspace are historical. Self-review adds one Bedrock call per plan; allow processing time. Read actual returned figures, not a prewritten guarantee.
+
 The product now emphasizes the incident, the recovery map, supplier quantities, and the decision. Use narration and one architecture slide for the deeper explanations below. Do not read every dashboard label aloud.
 
 ## Recording sequence
@@ -97,3 +99,10 @@ The gain comes from a newly permitted operational action. A manually configured 
 Use **New incident workspace**, choose the chicken example, and submit it. Show the new incident ID and real Bedrock extraction. Record a **synthetic precautionary hold** with a reference; explicitly say this is a demonstration of operator evidence review, not a diagnosis from a complaint. Run the recovery agent and show the chicken-specific source, affected stores, allocations and remaining shortage. Approve the proposal, then refresh to prove persistence. The full live dataset test calculated 1,022 / 1,022 chicken packs before a stock reduction; an unrelated newly registered tomato lot generated its own 95 / 95 pack plan. These outcomes reflect the tested stock revision and can change after operator updates.
 
 Narration: “This is a new report, not a replay of our original romaine recall. Bedrock extracts the lot, the backend validates its provenance, and an operator reviews the evidence. The planner uses that product’s current database stock to produce a traceable recovery proposal. Unknown records stay pending instead of being fabricated, and a stock change invalidates an older proposal.”
+
+Current network/version demo additions:
+- On the chosen incident, show Original supply → Interrupted → Recovery. Explain dashed ancestry versus solid proposed allocation lines; show the supplier pack total and click a delivery line for road km/ETA.
+- Keep one incident selected for the numerical before/after. Use the synthetic Chicken integration case for the tested 600 → 1,000 pack example (58.7% → 97.8%, 22 packs unresolved).
+- Open Plan versions, preview the earlier 600-pack calculation, and explain that viewing history does not apply it. “Use V… as starting point” creates a new branch on the next agent run; it never overwrites that saved calculation.
+- The Romaine investigation and 95-pack newly registered Tomato lot have different scopes. Do not describe every product as having 27 affected stores or claim automatic recovery before a proposal exists.
+- State that the second Bedrock review is a bounded request/plan consistency check. It may correct a supported condition once, or request clarification; it is not model training, guaranteed improvement, or unlimited self-reflection.

@@ -1,5 +1,7 @@
 # FoodTraceAI
 
+> **Current deployed UI (v3): Unified incident dashboard.** Select Romaine, Raw Chicken or Tomatoes, then an incident. Report intake, metrics, map, allocation, Bedrock review and approval all use the same persisted incident and backend engine. Use **New incident** to start. See [the current workflow](docs/NEW_INCIDENT_WORKSPACE.md). E01-specific scenarios described in older sections below are historical and are not mounted in the current UI.
+
 **Keep food moving when a supplier, lot, or shared facility fails.**
 
 A working food-continuity demo for a **Bay Area regional grocery replenishment manager**. Start with a new customer report, use Amazon Bedrock to extract product/lot facts and assess replacements, trace the incident, allocate available supply, and record a human decision. A second regulator view shows the evidence and containment status.
@@ -130,3 +132,5 @@ Built by extending the existing Recall Radar prototype in this workspace, with t
 ### Independent incidents (v2)
 
 The deployed dashboard now includes **New incident workspace**: submit a new report for a registered product/lot, use Bedrock extraction, review evidence, trace that lot, calculate a product-specific recovery plan, and save an approval. Previously unknown lots can be registered with operator-provided provenance and retried. Operational records and stock updates are persisted in DynamoDB; stale proposals cannot be approved after data changes. See [the workflow and limitations](docs/NEW_INCIDENT_WORKSPACE.md). This uses synthetic records, not external live inventory or lab feeds.
+
+Current AWS UI also restores the staged supply-network map and adds per-incident saved calculation versions. See `docs/NEW_INCIDENT_WORKSPACE.md` for branching, validation and the explicit absence of cross-incident stock reservations. Actual live checks are recorded under `docs/verification/`.

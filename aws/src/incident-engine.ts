@@ -73,3 +73,11 @@ export function planIncident(c:Catalog,lotId:number,conditions:Conditions,at=new
  const allocatedUnits=allocations.reduce((n,a)=>n+a.units,0);
  return {catalogVersion:c.version,conditions,product:impact.product,requiredUnits,allocatedUnits,unfilledUnits:requiredUnits-allocatedUnits,coverage:requiredUnits?100*allocatedUnits/requiredUnits:null,cost:Math.round(allocations.reduce((n,a)=>n+a.cost,0)),lastDeliveryMinutes:allocations.length?Math.max(...allocations.map(a=>a.etaMinutes)):null,allocations,offers,stores:targets.map(t=>({...t,receivedUnits:allocations.filter(a=>a.storeId===t.id).reduce((n,a)=>n+a.units,0)})),createdAt:at,disclosure:'Synthetic DB stock. Exact-product substitutes only. Road estimates plus supplier preparation; no live traffic, actual order, reservation or dispatch. Inbound and on-hand affected packs are separate replacement needs.'};
 }
+
+// Ignore unrelated catalog revisions only when every computed dependency still matches.
+export function planIsCurrent(c:Catalog,lotId:number,plan:any){
+ if(!plan)return false;
+ const fresh=planIncident(c,lotId,plan.conditions);
+ const fields=['product','requiredUnits','allocatedUnits','unfilledUnits','coverage','cost','lastDeliveryMinutes','allocations','offers','stores'];
+ return fields.every(k=>JSON.stringify((fresh as any)[k])===JSON.stringify(plan[k]));
+}

@@ -1,0 +1,28 @@
+{
+  "status": "passed",
+  "testedAt": "2026-10-24T10:52:21.758Z",
+  "workflow": "One incident API and allocation engine across intake and main dashboard",
+  "model": "amazon.nova-pro-v1:0",
+  "catalogVersion": 8,
+  "before": {
+    "allocated": 600,
+    "coverage": 58.708414872798436
+  },
+  "after": {
+    "allocated": 1000,
+    "coverage": 97.84735812133073,
+    "unfilled": 22
+  },
+  "review": {
+    "verdict": "consistent",
+    "reviewCalls": 1,
+    "revisionApplied": false
+  },
+  "checks": [
+    "Real Bedrock draft and second review calls",
+    "600-to-1000 ceiling update changes the same saved incident",
+    "Saved proposal and dashboard read share a plan ID",
+    "Shortage display is a supported output",
+    "No database inventory increase or order dispatch"
+  ]
+}
