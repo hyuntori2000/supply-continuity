@@ -1,6 +1,6 @@
 > A complete AWS backend is now available in [`../aws/`](../aws/). See the [current backend handoff](deploy/BACKEND_CONNECTION.md) for the isolated live API and team-access login. The standalone frontend still defaults to local simulation unless explicitly configured.
 
-# Supply Continuity — independent AWS frontend
+# FoodTraceAI — independent AWS frontend
 
 This is a standalone React + Vite application extracted from the working prototype. It builds static HTML/CSS/JS and does **not** require Sites, Vinext, Cloudflare Workers or D1 to run. Copy this entire `frontend/` directory to use it independently. The original full-stack prototype remains at the repository root.
 

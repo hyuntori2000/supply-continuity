@@ -20,7 +20,7 @@ The browser submits the code as a Bearer credential. AWS inference endpoints ret
 
 ## Team-owned AWS25 API remains independent
 
-The originally supplied `AWS25` API is `vceh0xmua8`, at https://vceh0xmua8.execute-api.us-east-1.amazonaws.com . Supply Continuity's temporary integration was removed at the owner's request. At release it had zero routes, zero integrations, an empty auto-deploy `$default` stage and no app-specific CORS configuration. A `404` then meant no backend was connected. The team may subsequently change it; this is not a live status monitor.
+The originally supplied `AWS25` API is `vceh0xmua8`, at https://vceh0xmua8.execute-api.us-east-1.amazonaws.com . FoodTraceAI's temporary integration was removed at the owner's request. At release it had zero routes, zero integrations, an empty auto-deploy `$default` stage and no app-specific CORS configuration. A `404` then meant no backend was connected. The team may subsequently change it; this is not a live status monitor.
 
 Teammates can use AWS25 for their backend without replacing the isolated demo. Connect their deployed backend, define its methods/paths, configure authentication and CORS for their frontend, then test the full flow. Merely creating an API URL does not deploy application code.
 

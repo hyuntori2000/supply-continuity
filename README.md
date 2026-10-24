@@ -1,4 +1,4 @@
-# Supply Continuity
+# FoodTraceAI
 
 **Keep food moving when a supplier, lot, or shared facility fails.**
 

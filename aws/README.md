@@ -2,7 +2,7 @@
 
 The isolated AWS demo runs at https://main.dgblsgkgfm7j6.amplifyapp.com . Its API is https://5ythut6kx6.execute-api.us-east-1.amazonaws.com . A team demo access code is required; it is intentionally not committed or included in frontend assets.
 
-**Team API `AWS25` (`vceh0xmua8`) is separate.** Its Supply Continuity routes/integration were removed at the owner's request. Deployment and connection scripts refuse to modify that API. Teammates can configure it independently.
+**Team API `AWS25` (`vceh0xmua8`) is separate.** Its FoodTraceAI routes/integration were removed at the owner's request. Deployment and connection scripts refuse to modify that API. Teammates can configure it independently.
 
 ## Architecture
 

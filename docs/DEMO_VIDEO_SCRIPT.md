@@ -1,4 +1,4 @@
-# Five-minute demo video: Supply Continuity
+# Five-minute demo video: FoodTraceAI
 
 The product now emphasizes the incident, the recovery map, supplier quantities, and the decision. Use narration and one architecture slide for the deeper explanations below. Do not read every dashboard label aloud.
 
@@ -14,7 +14,7 @@ The product now emphasizes the incident, the recovery map, supplier quantities, 
 | 3:15–3:45 | **Review & approve plan**, acknowledge the shortage, save a demo decision; show timeline | “The manager reviews a specific saved plan. A shortage requires explicit acknowledgment. The server checks the plan fingerprint, saves the decision and records an audit event. Approval here is a demo decision, not a real shipment.” |
 | 3:45–4:20 | Architecture slide below | “The React frontend runs on AWS Amplify. API Gateway invokes Lambda. Longer AI operations run as asynchronous jobs so the browser can display progress without waiting on a single gateway request. Bedrock Nova Pro performs the AI work, and DynamoDB persists reports, plans and decisions.” |
 | 4:20–4:45 | Return to the recovery map and unresolved-demand indicator | “The same supplier relationships, capacity limits and delivery constraints can support other disruption scenarios, such as a warehouse outage or a supplier becoming unavailable. Food contamination is our demonstrated scenario; broader disaster response requires the corresponding live operational data.” |
-| 4:45–5:00 | Team title and organizer-approved contact channel | “Supply Continuity helps a replenishment manager understand the impact, compare replacements and make an auditable recovery decision.” Add the actual team contact details before recording. |
+| 4:45–5:00 | Team title and organizer-approved contact channel | “FoodTraceAI helps a replenishment manager understand the impact, compare replacements and make an auditable recovery decision.” Add the actual team contact details before recording. |
 
 ## Architecture slide
 
