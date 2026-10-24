@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "checks": [
+    "DB-backed proposal",
+    "Shortage acknowledgement gate",
+    "Stale hash rejection",
+    "Approval persistence",
+    "Idempotent repeat",
+    "Conflicting decision blocked",
+    "Cross-origin mutation blocked"
+  ],
+  "liveBedrock": "Credentials present; live verification separate"
+}

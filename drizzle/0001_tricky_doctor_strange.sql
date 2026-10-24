@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `one_workflow_event_per_plan_kind` ON `workflow_events` (`plan_id`,`kind`);

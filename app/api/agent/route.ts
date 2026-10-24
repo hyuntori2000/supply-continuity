@@ -1,0 +1,9 @@
+import {z} from 'zod';
+import {scenarioSchema,stressTest} from '@/lib/continuity';
+import {bedrockStatus,runContinuityAgent,safeAgentError} from '@/lib/bedrock-continuity';
+import {savePlan,logEvent} from '@/lib/workflow';
+import {sourceForCase} from '@/lib/cases';
+export async function GET(){return Response.json(bedrockStatus());}
+export async function POST(req:Request){if(req.headers.get('origin')!==new URL(req.url).origin)return Response.json({error:'Invalid origin'},{status:403});const parsed=z.object({message:z.string().min(1).max(2000),scenario:scenarioSchema,caseId:z.string().uuid().optional(),source:z.string().min(1).max(8000)}).safeParse(await req.json().catch(()=>null));if(!parsed.success)return Response.json({error:'Invalid request'},{status:400});if(!bedrockStatus().configured)return Response.json({error:safeAgentError(new Error('AWS_NOT_CONFIGURED'))},{status:503});
+ const body=new ReadableStream({async start(controller){const enc=new TextEncoder();const emit=(v:unknown)=>controller.enqueue(enc.encode(JSON.stringify(v)+'\n'));try{const r=await runContinuityAgent(parsed.data.message,parsed.data.scenario,parsed.data.caseId?await sourceForCase(parsed.data.caseId):parsed.data.source,emit);const saved=await savePlan(r.scenario,r.matches,'amazon-bedrock');await logEvent('bedrock_run',{caseId:parsed.data.caseId||null,model:r.model,tools:r.audit.map(a=>a.name),audit:r.audit},saved.id);emit({type:'final',...saved,scenario:r.scenario,summary:r.summary,model:r.model,stress:stressTest(r.scenario,r.matches)});}catch(e){emit({type:'error',message:safeAgentError(e),code:e instanceof Error?e.message.replace(/[^A-Za-z_]/g,'').slice(0,60):'REQUEST_FAILED'});}finally{controller.close();}}});return new Response(body,{headers:{'Content-Type':'application/x-ndjson','Cache-Control':'no-store'}});
+}

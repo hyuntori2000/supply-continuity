@@ -1,0 +1,4 @@
+export async function GET(){
+ const url='https://api.fda.gov/food/enforcement.json?limit=3&sort=report_date:desc';
+ try{const res=await fetch(url,{signal:AbortSignal.timeout(15000)});if(!res.ok)throw new Error('Feed unavailable');const body=await res.json() as {results:Record<string,string>[]};return Response.json({sourceUrl:url,retrievedAt:new Date().toISOString(),notice:'Weekly enforcement reference data; not real-time alerts or a recall lifecycle tracker. These records are not mapped to the synthetic inventory.',records:body.results.map(r=>({id:r.recall_number,product:r.product_description,lot:r.code_info,reason:r.reason_for_recall,firm:r.recalling_firm,reportDate:r.report_date,classification:r.classification}))},{headers:{'Cache-Control':'private, max-age=300'}});}catch{return Response.json({error:'The openFDA reference feed is unavailable. The clearly labeled sample recall remains available.'},{status:502});}
+}

@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1792819048798,
+      "tag": "0000_happy_komodo",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1792819940285,
+      "tag": "0001_tricky_doctor_strange",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792820843727,
+      "tag": "0002_uneven_carlie_cooper",
+      "breakpoints": true
+    }
+  ]
+}

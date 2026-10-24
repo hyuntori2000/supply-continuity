@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "testedAt": "2026-10-24T05:53:40.810Z",
+  "results": [
+    {
+      "scenario": "recall",
+      "model": "amazon.nova-pro-v1:0",
+      "tools": [
+        "verify_recall",
+        "inspect_dependencies",
+        "record_product_assessment",
+        "optimize_recovery"
+      ],
+      "required": 1220,
+      "allocated": 1220,
+      "unfilled": 0,
+      "summary": "1,220 of 1,220 kg allocated (100%). Napa: 512 kg (512 physical packs); Petaluma: 388 kg (776 physical packs); Gilroy: 320 kg (320 physical packs). 0 kg remain unfilled; 82 allocated kg arrive after the modeled deadline. Existing commitments remain reserved. This is a synthetic proposal, not a purchase or dispatch."
+    },
+    {
+      "scenario": "warehouse-outage",
+      "model": "amazon.nova-pro-v1:0",
+      "tools": [
+        "verify_recall",
+        "inspect_dependencies",
+        "record_product_assessment",
+        "set_scenario",
+        "optimize_recovery"
+      ],
+      "required": 1591,
+      "allocated": 611,
+      "unfilled": 980,
+      "summary": "611 of 1,591 kg allocated (38%). Petaluma: 611 kg (1222 physical packs). 980 kg remain unfilled; 372 allocated kg arrive after the modeled deadline. Existing commitments remain reserved. This is a synthetic proposal, not a purchase or dispatch."
+    }
+  ]
+}

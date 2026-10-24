@@ -1,0 +1,5 @@
+import {sqliteTable,text,uniqueIndex} from 'drizzle-orm/sqlite-core';
+import {integer} from 'drizzle-orm/sqlite-core';
+export const intakeCases=sqliteTable('intake_cases',{id:text('id').primaryKey(),storeId:integer('store_id').notNull(),storeName:text('store_name').notNull(),report:text('report').notNull(),status:text('status').notNull(),extraction:text('extraction'),model:text('model'),createdAt:text('created_at').notNull()});
+export const recoveryPlans=sqliteTable('recovery_plans',{id:text('id').primaryKey(),fingerprint:text('fingerprint').notNull(),scenario:text('scenario').notNull(),matches:text('matches').notNull(),plan:text('plan').notNull(),status:text('status').notNull().default('proposed'),source:text('source').notNull(),createdAt:text('created_at').notNull(),decisionAt:text('decision_at'),decisionNote:text('decision_note')});
+export const workflowEvents=sqliteTable('workflow_events',{id:text('id').primaryKey(),planId:text('plan_id'),kind:text('kind').notNull(),detail:text('detail').notNull(),createdAt:text('created_at').notNull()},t=>[uniqueIndex('one_workflow_event_per_plan_kind').on(t.planId,t.kind)]);

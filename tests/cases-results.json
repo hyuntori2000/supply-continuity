@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "testedAt": "2026-10-24T06:00:36.303Z",
+  "model": "amazon.nova-pro-v1:0",
+  "checks": [
+    "Report persisted before inference",
+    "Live Bedrock extraction",
+    "Exact lot/store evidence link",
+    "Stored case drives live recovery",
+    "Missing lot remains needs_records",
+    "Unmatched case cannot invoke recovery",
+    "Inbox survives independent read"
+  ],
+  "tools": [
+    "verify_recall",
+    "inspect_dependencies",
+    "record_product_assessment",
+    "set_scenario",
+    "optimize_recovery"
+  ],
+  "allocated": 1220,
+  "unfilled": 0
+}

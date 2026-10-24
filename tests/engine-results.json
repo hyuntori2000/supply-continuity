@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "scenarioCases": 120,
+  "assertions": "Capacity conservation, no double allocation, exclusions, shared dependencies, normalized pack units, shortage priorities, incident triage order, recovery timing, schema validation, lot tracing and plan hash",
+  "baseline": {
+    "required": 1220,
+    "allocated": 1220,
+    "onTimeKg": 1138,
+    "cost": 6940
+  },
+  "warehouseOutage": {
+    "required": 1591,
+    "allocated": 611,
+    "unfilled": 980
+  }
+}

@@ -1,0 +1,5 @@
+import {z} from 'zod';
+import {submitCase,analyzeCase,listCases} from '@/lib/cases';
+import {safeAgentError} from '@/lib/bedrock-continuity';
+export async function GET(){try{return Response.json({cases:await listCases()});}catch{return Response.json({error:'Case storage is not ready. Apply database migrations.',cases:[]},{status:503});}}
+export async function POST(req:Request){if(req.headers.get('origin')!==new URL(req.url).origin)return Response.json({error:'Invalid origin'},{status:403});const p=z.discriminatedUnion('action',[z.object({action:z.literal('submit'),storeId:z.number().int().min(1).max(27),report:z.string().min(10).max(4000)}),z.object({action:z.literal('analyze'),id:z.string().uuid()})]).safeParse(await req.json().catch(()=>null));if(!p.success)return Response.json({error:'Enter a store and a report of 10–4,000 characters.'},{status:400});try{return Response.json(p.data.action==='submit'?await submitCase(p.data.storeId,p.data.report):await analyzeCase(p.data.id));}catch(e){return Response.json({error:p.data.action==='analyze'?safeAgentError(e):'Could not save the case. Check database migrations.'},{status:503});}}

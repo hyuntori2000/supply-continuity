@@ -1,0 +1,9 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const base=process.env.TEST_BASE_URL||'http://127.0.0.1:3200';
+const overview=await(await fetch(base+'/api/continuity')).json();
+assert.ok(overview.ai.configured,'Configure AWS credentials first.');
+const scenarios=[{name:'recall',message:'Investigate the recall, assess every replacement product and generate a recovery plan.',expected:0},{name:'warehouse-outage',message:'The Oakland warehouse (facility 5) is closed. Apply this facility outage and generate a recovery plan using independent suppliers.',expected:980}];
+const results=[];
+for(const test of scenarios){const response=await fetch(base+'/api/agent',{method:'POST',headers:{'Content-Type':'application/json',Origin:base},body:JSON.stringify({message:test.message,source:overview.report,scenario:overview.initial.scenario})});const events=(await response.text()).trim().split('\n').filter(Boolean).map(s=>JSON.parse(s));const failure=events.find(e=>e.type==='error');if(failure){console.log(JSON.stringify({scenario:test.name,error:failure.message,tools:events.filter(e=>e.type==='tool_start').map(e=>e.name)}));process.exit(1);}const last=events.find(e=>e.type==='final');assert.ok(last,'No final plan');assert.equal(last.plan.unfilled,test.expected);assert.equal(last.source,'amazon-bedrock');assert.ok(events.some(e=>e.type==='tool_result'&&e.name==='record_product_assessment'));if(test.name==='warehouse-outage')assert.ok(last.plan.allocations.every(a=>a.offerId==='F'));const result={scenario:test.name,model:last.model,tools:events.filter(e=>e.type==='tool_start').map(e=>e.name),required:last.plan.required,allocated:last.plan.allocated,unfilled:last.plan.unfilled,summary:last.summary};results.push(result);console.log(JSON.stringify(result));}
+fs.writeFileSync(new URL('./live-bedrock-results.json',import.meta.url),JSON.stringify({status:'passed',testedAt:new Date().toISOString(),results},null,2)+'\n');
