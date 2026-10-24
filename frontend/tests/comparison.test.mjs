@@ -11,7 +11,7 @@ const module={exports:{}};
 vm.runInNewContext(js,{module,exports:module.exports,require:createRequire(engineUrl),crypto,TextEncoder});
 const {defaults,optimize}=module.exports;
 const helper=ts.transpileModule(fs.readFileSync(new URL('../src/lib/plan-comparison.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
-const {captureComparison,constraintChanges,sourceChanges,requiredTools}=await import('data:text/javascript;base64,'+Buffer.from(helper).toString('base64'));
+const {captureComparison,constraintChanges,sourceChanges,requiredTools,formatCoverage,coveragePercent,scenarioKey}=await import('data:text/javascript;base64,'+Buffer.from(helper).toString('base64'));
 const initial=optimize(defaults),outage=optimize({...defaults,closedFacilityIds:[5]}),transfers=optimize({...defaults,closedFacilityIds:[5],enableStoreTransfers:true});
 const evidence=plan=>requiredTools.map(name=>({name,output:name==='set_scenario'?{scenario:plan.scenario}:{}}));
 const final=plan=>({source:'amazon-bedrock',model:'test-model',id:'test-plan',plan,scenario:plan.scenario});
@@ -64,4 +64,29 @@ test('regional delay, approved direct dispatch and stock ceilings appear as actu
  assert.match(rows[2].after,/80 kg/);
  assert.ok(captureComparison(outage,'Apply changes',final(updated),evidence(updated)));
  assert.equal(captureComparison(outage,'Apply changes',final(updated),evidence(outage)),null,'Applied tools must match new operational fields, not only legacy settings');
+});
+
+test('constrained-stock demo calculates a genuine gain without changing demand or supplier stock',async()=>{
+ const demoJs=ts.transpileModule(fs.readFileSync(new URL('../src/lib/recovery-demo.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+ const {coverageDemoScenario:s,coverageDemoRequest}=await import('data:text/javascript;base64,'+Buffer.from(demoJs).toString('base64'));
+ const a=optimize(s),b=optimize({...s,enableStoreTransfers:true});
+ assert.equal(a.required,1220);assert.equal(b.required,a.required);
+ assert.equal(a.allocated,732);assert.equal(b.allocated,1068);
+ assert.equal(formatCoverage(a.allocated,a.required),'60.0%');
+ assert.equal(formatCoverage(b.allocated,b.required),'87.5%');
+ assert.equal(b.transferKg,336);assert.equal(b.unfilled,152);
+ assert.equal(b.supplierKg,a.supplierKg);assert.equal(b.lateKg,82);
+ assert.ok(coverageDemoRequest.includes('200 kg'));
+ assert.deepEqual(constraintChanges(a,b).map(x=>x.label),['Same-chain store transfers']);
+ for(const donor of b.transferDonors)assert.ok(!donor.sentKg||donor.remainingSafeKg>=donor.minimumKeepKg);
+ assert.ok(!b.allocations.some(x=>['A','C'].includes(x.offerId)));
+ assert.equal(formatCoverage(0,0),'N/A');assert.equal(coveragePercent(0,100),0);
+ assert.notEqual(scenarioKey(s),scenarioKey(defaults));
+ assert.ok(captureComparison(a,coverageDemoRequest,final(b),evidence(b)));
+});
+
+test('approval narrative uses the same coverage precision as the comparison',async()=>{
+ const code=ts.transpileModule(fs.readFileSync(new URL('../src/lib/presentation.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+ const {narrative}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+ assert.match(narrative({...initial,allocated:1068,required:1220,coverage:88}),/87\.5%/);
 });

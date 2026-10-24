@@ -79,3 +79,15 @@ Follow-up: “North Bay traffic has cleared. D has only 80 kg of uncommitted sto
 Unsupported requests such as avoiding Highway 101 specifically, an unknown region, arbitrary milk inventory requirements or external verification must be disclosed under **Not applied** rather than presented as implemented. These are user-supplied what-if conditions, not verified real-time incident facts.
 
 Validation: the original informal request was tested against real Bedrock after separating product-fit assessment from initial route eligibility. An initial attempt incorrectly treated D’s warehouse outage as product incompatibility; that run was not counted as success. The subsequent acceptance sequence passed: D added 320 kg (611 → 931 kg total; 980 → 660 kg unfilled), a follow-up capped D at 80 kg, and unsupported highway/milk constraints were returned as unapplied. Full sanitized results: `verification/operational-language.json`. These observations do not guarantee every paraphrase will be interpreted correctly.
+
+### Recovery coverage: operational action → measurable improvement
+
+In the Recovery agent card, click **Load constrained-stock demo**. This replaces the current scenario with an explicitly synthetic stock report: B has 200 kg spare, D 200 kg, F 332 kg; store transfers are initially disabled. It does not call AI. The engine calculates 732 / 1,220 kg allocated, **60.0% coverage**.
+
+Read or edit the prefilled operations-team request, then click **Run Bedrock investigation**. The request authorizes safe same-chain store transfers, preserves supplier ceilings and donor reserves, and keeps recalled lots excluded. Bedrock interprets this operational permission into a validated scenario change, then calls the allocation engine.
+
+The verified demo result is 1,068 / 1,220 kg, **87.5% coverage (+27.5 percentage points)**. Suppliers still contribute 732 kg; safe store surplus adds 336 kg. There are 152 kg still unfilled and 82 kg allocated after modeled deadlines. On-time coverage improves from 49.6% to 80.8%. Do not call this full recovery, delivered stock, a learned prediction, or 89%. Both plans use the same replacement need.
+
+Narration: “The initial plan covers only 60% of replacement demand. Our operator tells the agent what the team can now do: authorize transfers of safe stock within each retail chain. Bedrock turns that instruction into an executable constraint change. The optimizer protects donor reserves and recalled-lot exclusions, and calculates 87.5% coverage. We can see exactly which stores contribute the additional 336 kilograms, and the remaining shortage is still visible.”
+
+The gain comes from a newly permitted operational action. A manually configured optimizer can also execute that action; the agent's contribution is interpreting the operator's language, applying supported conditions, calling verification tools, and generating an auditable revised plan. See `docs/verification/coverage-demo.json` for the real Bedrock acceptance result. Reload resets the working scenario and comparison; export the plan to preserve the comparison.

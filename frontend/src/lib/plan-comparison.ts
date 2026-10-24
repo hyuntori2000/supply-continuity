@@ -59,3 +59,12 @@ export function sourceChanges(before:RecoveryPlan,after:RecoveryPlan) {
   const a=amounts(before),b=amounts(after);
   return [...new Set([...a.keys(),...b.keys()])].map(key=>({key,name:(b.get(key)||a.get(key))!.name,before:a.get(key)?.kg||0,after:b.get(key)?.kg||0})).filter(r=>r.before!==r.after);
 }
+
+// Coverage describes planned allocation, not delivery or confirmed incident resolution.
+export function coveragePercent(allocated:number,required:number):number|null {
+  return required>0?100*allocated/required:null;
+}
+export function formatCoverage(allocated:number,required:number) {
+  const value=coveragePercent(allocated,required);
+  return value===null?'N/A':`${value.toFixed(1)}%`;
+}

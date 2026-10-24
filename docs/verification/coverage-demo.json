@@ -1,0 +1,49 @@
+{
+  "testedAt": "2026-10-24T09:19:39.278Z",
+  "status": "passed",
+  "model": "amazon.nova-pro-v1:0",
+  "request": "Our operations team can authorize transfers of safe surplus stock between stores of the same retailer. Enable those transfers while protecting donor minimum inventory and excluding recalled lots. Keep the current supplier stock limits (B 200 kg, D 200 kg, F 332 kg) and all other conditions unchanged. Prioritize continuity and recalculate the recovery plan.",
+  "appliedScenario": {
+    "closedFacilityIds": [],
+    "blockedSupplierIds": [],
+    "objective": "continuity",
+    "trafficMultiplier": 1,
+    "enableStoreTransfers": true,
+    "regionalTraffic": [],
+    "directDispatchSupplierIds": [],
+    "supplierCapacityLimits": [
+      {
+        "supplierId": 2,
+        "availableKg": 200
+      },
+      {
+        "supplierId": 4,
+        "availableKg": 200
+      },
+      {
+        "supplierId": 6,
+        "availableKg": 332
+      }
+    ]
+  },
+  "checks": [
+    "Actual live Bedrock tool chain",
+    "Same replacement demand and supplier ceilings",
+    "Donor protected stock and recall exclusions",
+    "Coverage derived from allocated kilograms"
+  ],
+  "before": {
+    "required": 1220,
+    "allocated": 732,
+    "coverage": 60
+  },
+  "after": {
+    "required": 1220,
+    "allocated": 1068,
+    "coverage": 87.54098360655738,
+    "transferKg": 336,
+    "unfilled": 152,
+    "onTimeKg": 986,
+    "lateKg": 82
+  }
+}

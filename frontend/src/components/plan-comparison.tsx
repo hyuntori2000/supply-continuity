@@ -1,5 +1,5 @@
 import {ArrowRight, Check, ChevronDown, Sparkles} from 'lucide-react';
-import {constraintChanges, sourceChanges, type PlanComparison as Comparison} from '@/lib/plan-comparison';
+import {coveragePercent,formatCoverage,constraintChanges, sourceChanges, type PlanComparison as Comparison} from '@/lib/plan-comparison';
 
 const fmt=(n:number)=>n.toLocaleString('en-US');
 const kg=(n:number)=>`${fmt(n)} kg`;
@@ -11,6 +11,8 @@ export default function PlanComparison({comparison}:{comparison:Comparison}) {
   const interpretation=comparison.tools.find(t=>t.name==='set_scenario')?.output?.interpretation;
   const assumptions=[...(interpretation?.assumptions||[]),...(after.operationalNotes||[])];
   const metrics=[
+    {label:'Recovery coverage',a:formatCoverage(before.allocated,before.required),b:formatCoverage(after.allocated,after.required)},
+    {label:'On-time coverage',a:formatCoverage(before.onTimeKg,before.required),b:formatCoverage(after.onTimeKg,after.required)},
     {label:'Replacement need',a:kg(before.required),b:kg(after.required)},
     {label:'Supplier allocation',a:kg(before.supplierKg),b:kg(after.supplierKg)},
     {label:'Same-chain transfers',a:kg(before.transferKg),b:kg(after.transferKg)},
@@ -20,11 +22,15 @@ export default function PlanComparison({comparison}:{comparison:Comparison}) {
     {label:'Modeled cost',a:money(before.cost),b:money(after.cost)},
     {label:'Full recovery ETA',a:duration(before.timing.recoveryMinutes),b:duration(after.timing.recoveryMinutes)},
   ];
+  const beforeCoverage=coveragePercent(before.allocated,before.required),afterCoverage=coveragePercent(after.allocated,after.required);
+  const delta=beforeCoverage===null||afterCoverage===null?null:afterCoverage-beforeCoverage;
   const gapDelta=after.unfilled-before.unfilled;
   return <section id="plan-comparison" className="panel plan-comparison" aria-labelledby="comparison-title">
     <div className="panel-header"><div><div className="eyebrow">AI REQUEST → VERIFIED CONDITIONS → RECALCULATED PLAN</div><h2 id="comparison-title"><Sparkles size={19}/> What changed after AI?</h2></div><span className="tag green">Live Bedrock result</span></div>
     <div className="comparison-body">
       <blockquote className="comparison-request"><span>YOUR REQUEST</span>{comparison.request}</blockquote>
+      <div className="coverage-comparison" aria-label="Recovery coverage comparison"><div><span>BEFORE</span><strong>{formatCoverage(before.allocated,before.required)}</strong><small>{kg(before.allocated)} / {kg(before.required)}</small></div><ArrowRight size={26}/><div><span>AFTER AI-UPDATED CONDITIONS</span><strong>{formatCoverage(after.allocated,after.required)}</strong><small>{kg(after.allocated)} / {kg(after.required)}</small></div><div className={delta!==null&&delta>0?'coverage-gain':'coverage-neutral'}><strong>{delta===null?'N/A':`${delta>0?'+':''}${delta.toFixed(1)} pp`}</strong><small>Percentage-point change{before.required!==after.required?' · demand also changed':''}</small></div></div>
+      <p className="coverage-definition">Coverage = allocated replacement stock ÷ replacement need. Planned supply, not completed deliveries. {before.required===after.required?'Replacement need is unchanged in this comparison.':'Demand differs; this is not a like-for-like improvement.'}</p>
       <div className="comparison-grid">
         <div className="comparison-conditions"><h3>Conditions applied</h3>{changes.length?<ul>{changes.map(row=><li key={row.label}><strong>{row.label}</strong><div><span>{row.before}</span><ArrowRight size={14}/><b>{row.after}</b></div></li>)}</ul>:<p className="comparison-note">No supported scenario conditions changed. Bedrock reviewed product fit and recalculated the plan.</p>}
           {interpretation?.summary&&!interpretation?.unappliedRequests?.length&&<p className="comparison-note">{interpretation.summary}</p>}
