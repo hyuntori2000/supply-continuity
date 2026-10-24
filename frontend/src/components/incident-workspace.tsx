@@ -1,3 +1,4 @@
+import TrafficAnalysis from './traffic-analysis';
 import SpecialSuggestion from './special-suggestion';
 import {useEffect,useRef,useState} from 'react';
 import IncidentNetwork from './incident-network';
@@ -24,6 +25,7 @@ function IncidentMap({catalog,incident,productId}:{catalog:any;incident?:any;pro
  return <div className="new-incident-map" ref={ref} aria-label="Selected incident affected stores and replacement allocations"/>;
 }
 export default function IncidentWorkspace(){
+ const [trafficOpen,setTrafficOpen]=useState(false);
  const [data,setData]=useState<any>(null),[selected,setSelected]=useState<any>(null),[busy,setBusy]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [storeId,setStoreId]=useState(1),[report,setReport]=useState(''),[productId,setProductId]=useState(2),[kind,setKind]=useState('precautionary_hold'),[reference,setReference]=useState(''),[request,setRequest]=useState('Generate a recovery plan using safe exact-product supplier stock. Minimize delivery time.'),[ack,setAck]=useState(false);
  const [stockId,setStockId]=useState(2),[stock,setStock]=useState(5000),[stockNote,setStockNote]=useState(''),[lotCode,setLotCode]=useState(''),[lotProduct,setLotProduct]=useState(3),[farmId,setFarmId]=useState(5),[quantity,setQuantity]=useState(100),[expiry,setExpiry]=useState('2026-10-29'),[registryNote,setRegistryNote]=useState('');
@@ -41,7 +43,7 @@ export default function IncidentWorkspace(){
   return b;
  }
  useEffect(()=>{
-  const navigate=()=>{const route=parseIncidentRoute(window.location.hash);setSelected(null);setBasePlanId(null);setPreview(null);setError('');setAck(false);setRequest('Generate a recovery plan using safe exact-product supplier stock. Minimize delivery time.');
+  const navigate=()=>{setTrafficOpen(false);const route=parseIncidentRoute(window.location.hash);setSelected(null);setBasePlanId(null);setPreview(null);setError('');setAck(false);setRequest('Generate a recovery plan using safe exact-product supplier stock. Minimize delivery time.');
    setCreating(route.kind==='new');setProductFilter(route.kind==='product'?route.productId:null);
    refresh(route.kind==='incident'?route.id:undefined,route.kind==='default').catch(e=>setError(e.message));};
   navigate();window.addEventListener('hashchange',navigate);return()=>{loadGeneration.current++;window.removeEventListener('hashchange',navigate);};
@@ -58,7 +60,8 @@ export default function IncidentWorkspace(){
  const priorityStores=(p?.stores||[]).filter((s:any)=>priorityIds.includes(s.id));
  const urgentExample=[...(p?.stores||impact?.targets||[])].sort((a:any,b:any)=>(b.needUnits-(b.receivedUnits||0))-(a.needUnits-(a.receivedUnits||0)))[0];
  const visibleIncidents=c?productIncidents(c,data.incidents,productFilter):[];
- return <main className="new-workspace unified-dashboard"><header className="new-header"><div><div className="eyebrow">FOODTRACEAI · CRITICAL FOOD OPERATIONS</div><h1>Incident response</h1><p>Report → trace → review → allocate → approve</p></div><div className="top-actions"><button className="primary" disabled={!!busy||!c} onClick={newReport}><Plus size={16}/> New incident</button><button className="secondary" disabled={!!busy||!selected} onClick={exportIncident}><Download size={16}/> Export plan</button><button className="secondary" disabled={!!busy} onClick={()=>execute('Refreshing',async()=>{await refresh(selected?.id);})}><RefreshCw size={16}/> Refresh records</button></div></header>
+ if(trafficOpen&&selected?.plan)return <TrafficAnalysis incident={selected} onClose={()=>setTrafficOpen(false)}/>;
+ return <main className="new-workspace unified-dashboard"><header className="new-header"><div><div className="eyebrow">FOODTRACEAI · CRITICAL FOOD OPERATIONS</div><h1>Incident response</h1><p>Report → trace → review → allocate → approve</p></div><div className="top-actions"><button className="secondary" disabled={!!busy||!p||!!stale} title="Requires a current saved recovery plan" onClick={()=>setTrafficOpen(true)}>Traffic & timing</button><button className="primary" disabled={!!busy||!c} onClick={newReport}><Plus size={16}/> New incident</button><button className="secondary" disabled={!!busy||!selected} onClick={exportIncident}><Download size={16}/> Export plan</button><button className="secondary" disabled={!!busy} onClick={()=>execute('Refreshing',async()=>{await refresh(selected?.id);})}><RefreshCw size={16}/> Refresh records</button></div></header>
  {error&&<div className="alert error" role="alert">{error}</div>}{notice&&<div className="alert" role="status">{notice}</div>}{busy&&<div className="alert" role="status"><Sparkles size={16}/>{busy}…</div>}
  {!c?<p>{error?"Use Refresh records to retry the AWS connection. No cached scenario is substituted.":"Loading operational records from AWS…"}</p>:<><div className="db-status"><Database size={16}/><span>Amazon DynamoDB · catalog v{c.version} · updated {new Date(c.updatedAt).toLocaleString()}<small>Seeded synthetic stock and provenance, with persisted operator updates. No external inventory feed.</small></span></div>
  <nav className="product-navigation" aria-label="Choose product">{c.products.map((product:any)=><button key={product.id} className={productFilter===product.id?'active':''} disabled={!!busy} onClick={()=>chooseProduct(product.id)}>{product.name.replace('DEMO ','').replace(' 1 kg','')}<small>{productIncidents(c,data.incidents,product.id).length} incidents</small></button>)}<button disabled={!!busy} className={productFilter===null?'active':''} onClick={()=>setProductFilter(null)}>All incidents<small>Includes unmatched reports</small></button></nav>

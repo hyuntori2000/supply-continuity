@@ -74,8 +74,10 @@ export function eligibleTransfers(c:Catalog,lotId:number,conditions:Conditions,a
   });
  });
 }
+export type LiveRouting={routes:Record<string,{distanceKm:number;drivingMinutes:number}>,waitMinutes:number,planningStartAt:string};
+export const liveRouteKey=(sourceType:string,sourceId:number,storeId:number)=>`${sourceType}:${sourceId}:${storeId}`;
 // Supplier offers and safe store surpluses compete in the same capacitated flow.
-export function planIncident(c:Catalog,lotId:number,conditions:Conditions,at=new Date().toISOString()){
+export function planIncident(c:Catalog,lotId:number,conditions:Conditions,at=new Date().toISOString(),live?:LiveRouting){
  conditions=planConditions.parse(conditions);
  const impact=impactFor(c,lotId),offers=eligibleOffers(c,lotId,conditions,at),transferSources=eligibleTransfers(c,lotId,conditions,at),sources:any[]=[...offers.filter(o=>o.eligible).map(o=>({...o,sourceType:'supplier',sourceKey:'supplier:'+o.id})),...transferSources.map(o=>({...o,sourceType:'store',sourceKey:o.id}))],targets=impact.targets;
  type Edge={to:number;rev:number;cap:number;cost:number;initial:number};
@@ -90,11 +92,13 @@ export function planIncident(c:Catalog,lotId:number,conditions:Conditions,at=new
  const refs=sources.flatMap((s,i)=>targets.flatMap((t,j)=>{
   const transfer=s.sourceType==='store';
   if(transfer&&(s.store.chain!==t.chain||s.sourceStoreId===t.id))return [];
-  const r=transfer?storeRoads.find(r=>r.fromStoreId===s.sourceStoreId&&r.toStoreId===t.id):c.routes.find(r=>r.supplierId===s.farm_id&&r.storeId===t.id);
+  const r=live?live.routes[liveRouteKey(s.sourceType,transfer?s.sourceStoreId:s.farm_id,t.id)]:transfer?storeRoads.find(r=>r.fromStoreId===s.sourceStoreId&&r.toStoreId===t.id):c.routes.find(r=>r.supplierId===s.farm_id&&r.storeId===t.id);
   const originCity=transfer?s.store.city:s.farm.city;
-  const multiplier=Math.max(conditions.trafficMultiplier,...conditions.regionalTraffic.filter(x=>(trafficRegions[x.region] as readonly string[]).includes(originCity)||(trafficRegions[x.region] as readonly string[]).includes(t.city)).map(x=>x.multiplier));
+  const multiplier=live?1:Math.max(conditions.trafficMultiplier,...conditions.regionalTraffic.filter(x=>(trafficRegions[x.region] as readonly string[]).includes(originCity)||(trafficRegions[x.region] as readonly string[]).includes(t.city)).map(x=>x.multiplier));
   if(!r||r.distanceKm<=0||r.drivingMinutes<=0||transfer&&r.drivingMinutes*multiplier>conditions.maxTransferMinutes)return [];
-  const etaMinutes=Math.ceil((transfer?20:s.processing_lead_hours*60)+r.drivingMinutes*multiplier),unitCost=(transfer?impact.product.unitCost:s.unit_cost_usd)+r.distanceKm*.04*impact.product.unitKg;
+  const etaMinutes=Math.ceil((live?.waitMinutes||0)+(transfer?20:s.processing_lead_hours*60)+r.drivingMinutes*multiplier);
+  if(live){const lot=c.lots.find(l=>l.lot_code===s.lotCode),arrival=new Date(Date.parse(live.planningStartAt)+etaMinutes*60000).toISOString().slice(0,10);if(!lot?.expires_on||arrival>lot.expires_on)return [];}
+  const unitCost=(transfer?impact.product.unitCost:s.unit_cost_usd)+r.distanceKm*.04*impact.product.unitKg;
   const e=add(i,sources.length+j,Math.min(s.available,t.needUnits),Math.round((conditions.objective==='time'?etaMinutes:unitCost)*100));
   return [{e,s,t,r,etaMinutes,unitCost}];
  }));

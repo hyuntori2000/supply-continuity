@@ -23,7 +23,8 @@ process.env.DEMO_ACCESS_HASH=createHash('sha256').update('independent-test').dig
 const originalFetch=globalThis.fetch,db=new Map(),workers=[];let extraction={product:'Chicken',lotCode:'DEMO-P2-BLEND-A',summary:'Fictional complaint; no causal finding.'},conditions=basicConditions(),reviewOverride=null,lastInterpretation=null;
 const key=i=>i.pk.S+'|'+i.sk.S;
 globalThis.fetch=async(input,init)=>{const req=input instanceof Request?input:new Request(input,init),host=new URL(req.url).hostname,b=JSON.parse(await req.text());
- if(host.startsWith('bedrock-runtime.')){const name=b.toolConfig.toolChoice.tool.name;if(name==='apply_recovery_conditions')lastInterpretation=JSON.parse(b.messages[0].content[0].text);return Response.json({output:{message:{content:[{toolUse:{name,input:name==='explore_recovery_alternatives'?{proposals:[{title:'Safe store surplus',rationale:'Reduce unmet demand',allowStoreTransfers:true,maxTransferMinutes:90,objective:'time'}]}:name==='select_recovery_alternative'?{candidateId:'option-1',reason:'More verified packs',tradeoff:'Needs transfer permission'}:name==='extract_report'?extraction:name==='review_recovery_plan'?(reviewOverride||{verdict:'consistent',summary:'The draft follows the operator request.',findings:['Stock limits and remaining shortage checked.'],revisedConditions:null,amendmentEvidence:null}):conditions}}]}}});}
+ if(host==='routes.googleapis.com')return Response.json(b.destinations.map((_,i)=>({originIndex:0,destinationIndex:i,status:{},condition:'ROUTE_EXISTS',duration:'1200s',staticDuration:'1800s',distanceMeters:20000})));
+ if(host.startsWith('bedrock-runtime.')){const name=b.toolConfig.toolChoice.tool.name;if(name==='apply_recovery_conditions')lastInterpretation=JSON.parse(b.messages[0].content[0].text);return Response.json({output:{message:{content:[{toolUse:{name,input:name==='choose_traffic_plan'?{candidateId:'start-time',reason:'Earlier arrival with identical fulfilled packs.',tradeoffs:['Costs use synthetic rates.']}:name==='explore_recovery_alternatives'?{proposals:[{title:'Safe store surplus',rationale:'Reduce unmet demand',allowStoreTransfers:true,maxTransferMinutes:90,objective:'time'}]}:name==='select_recovery_alternative'?{candidateId:'option-1',reason:'More verified packs',tradeoff:'Needs transfer permission'}:name==='extract_report'?extraction:name==='review_recovery_plan'?(reviewOverride||{verdict:'consistent',summary:'The draft follows the operator request.',findings:['Stock limits and remaining shortage checked.'],revisedConditions:null,amendmentEvidence:null}):conditions}}]}}});}
  if(host.startsWith('lambda.')){workers.push(b);return new Response('',{status:202});}
  const action=req.headers.get('x-amz-target')?.split('.').pop();
  if(action==='GetItem')return Response.json({Item:db.get(key(b.Key))});
@@ -43,6 +44,12 @@ test('fresh incident is persisted before inference, matched without E01, reviewe
  const before=await handler(event({action:'record_evidence',id:chicken.id,kind:'positive_test',reference:'tiny'}));assert.equal(before.statusCode,400);
  chicken=await call({action:'record_evidence',id:chicken.id,kind:'precautionary_hold',reference:'Synthetic test hold pending records.'});
  chicken=await ai({action:'plan_incident',id:chicken.id,message:'Generate an exact product recovery plan.'});assert.equal(chicken.plan.product.id,2);assert.equal(chicken.plan.source,'amazon-bedrock');assert.ok(chicken.plan.allocatedUnits);assert.equal(chicken.planAudit.reflection.reviewCalls,1);assert.equal(chicken.planAudit.reflection.revisionApplied,false);
+});
+test('traffic analysis runs synchronously without writing jobs, incidents or plan versions',async()=>{
+ process.env.GOOGLE_ROUTES_API_KEY='AIza_TEST_ONLY';
+ const snapshot=JSON.stringify([...db]),queued=workers.length;
+ const result=await call({action:'traffic_insight',id:chicken.id,startAt:new Date(Date.now()+300000).toISOString()});
+ assert.equal(result.previewOnly,true);assert.equal(result.provider,'Google Maps');assert.equal(result.candidates.length,3);assert.equal(result.decision.candidateId,'start-time');assert.equal(JSON.stringify([...db]),snapshot);assert.equal(workers.length,queued);
 });
 test('DB inventory changes are persisted and make old proposals unapprovable',async()=>{
  const ws=await call({action:'workspace',id:chicken.id});await call({action:'update_stock',offerId:4,availableUnits:50,expectedVersion:ws.catalog.version,reference:'Synthetic confirmed spare stock 50.'});
