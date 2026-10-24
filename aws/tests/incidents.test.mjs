@@ -20,11 +20,11 @@ test('capacity, expired lots, provenance and unsafe ancestors cannot be bypassed
 test('all products retain conservation across capacity and transport scenarios',()=>{for(const lot of [3,8,13])for(const stock of [0,50,500])for(const trafficMultiplier of [1,2,3]){const c=initialCatalog();c.offers.forEach(o=>o.available_units=stock);const p=planIncident(c,lot,{...basicConditions(),trafficMultiplier},date);assert.equal(p.allocatedUnits+p.unfilledUnits,p.requiredUnits);assert.equal(p.allocations.reduce((n,a)=>n+a.units,0),p.allocatedUnits);for(const o of p.offers)assert.ok(p.allocations.filter(a=>a.supplierId===o.farm_id).reduce((n,a)=>n+a.units,0)<=o.available);}});
 
 process.env.DEMO_ACCESS_HASH=createHash('sha256').update('independent-test').digest('hex');process.env.ALLOWED_ORIGINS='https://independent.example';process.env.TABLE_NAME='test';process.env.AWS_REGION='us-east-1';process.env.AWS_ACCESS_KEY_ID='TEST';process.env.AWS_SECRET_ACCESS_KEY='TEST';process.env.AWS_LAMBDA_FUNCTION_NAME='test';
-const originalFetch=globalThis.fetch,db=new Map(),workers=[];let extraction={product:'Chicken',lotCode:'DEMO-P2-BLEND-A',summary:'Fictional complaint; no causal finding.'},conditions=basicConditions(),reviewOverride=null,lastInterpretation=null;
+const originalFetch=globalThis.fetch,db=new Map(),workers=[];let extraction={product:'Chicken',lotCode:'DEMO-P2-BLEND-A',summary:'Fictional complaint; no causal finding.'},conditions=basicConditions(),reviewOverride=null,lastInterpretation=null,missedExplorations=0,explorationCalls=0;
 const key=i=>i.pk.S+'|'+i.sk.S;
 globalThis.fetch=async(input,init)=>{const req=input instanceof Request?input:new Request(input,init),host=new URL(req.url).hostname,b=JSON.parse(await req.text());
  if(host==='routes.googleapis.com')return Response.json(b.destinations.map((_,i)=>({originIndex:0,destinationIndex:i,status:{},condition:'ROUTE_EXISTS',duration:'1200s',staticDuration:'1800s',distanceMeters:20000})));
- if(host.startsWith('bedrock-runtime.')){const name=b.toolConfig.toolChoice.tool.name;if(name==='apply_recovery_conditions')lastInterpretation=JSON.parse(b.messages[0].content[0].text);return Response.json({output:{message:{content:[{toolUse:{name,input:name==='choose_traffic_plan'?{candidateId:'start-time',reasonCode:'earlier_delivery'}:name==='explore_recovery_alternatives'?{proposals:[{title:'Safe store surplus',rationale:'Reduce unmet demand',allowStoreTransfers:true,maxTransferMinutes:90,objective:'time'}]}:name==='select_recovery_alternative'?{candidateId:'option-1',reason:'More verified packs',tradeoff:'Needs transfer permission'}:name==='extract_report'?extraction:name==='review_recovery_plan'?(reviewOverride||{verdict:'consistent',summary:'The draft follows the operator request.',findings:['Stock limits and remaining shortage checked.'],revisedConditions:null,amendmentEvidence:null}):conditions}}]}}});}
+ if(host.startsWith('bedrock-runtime.')){const name=b.toolConfig.toolChoice.tool.name;if(name==='explore_recovery_alternatives')explorationCalls++;if(name==='apply_recovery_conditions')lastInterpretation=JSON.parse(b.messages[0].content[0].text);return Response.json({output:{message:{content:[{toolUse:{name,input:name==='choose_traffic_plan'?{candidateId:'start-time',reasonCode:'earlier_delivery'}:name==='explore_recovery_alternatives'&&missedExplorations-->0?{proposals:[]}:name==='explore_recovery_alternatives'?{proposals:[{title:'Safe store surplus',rationale:'Reduce unmet demand',allowStoreTransfers:true,maxTransferMinutes:90,objective:'time'}]}:name==='select_recovery_alternative'?{candidateId:'option-1',reason:'More verified packs',tradeoff:'Needs transfer permission'}:name==='extract_report'?extraction:name==='review_recovery_plan'?(reviewOverride||{verdict:'consistent',summary:'The draft follows the operator request.',findings:['Stock limits and remaining shortage checked.'],revisedConditions:null,amendmentEvidence:null}):conditions}}]}}});}
  if(host.startsWith('lambda.')){workers.push(b);return new Response('',{status:202});}
  const action=req.headers.get('x-amz-target')?.split('.').pop();
  if(action==='GetItem')return Response.json({Item:db.get(key(b.Key))});
@@ -104,6 +104,11 @@ test('another report for an already-held lot does not invalidate unrelated saved
  assert.equal((await call({action:'workspace'})).catalog.version,ws.catalog.version);
 });
 test.after(()=>{globalThis.fetch=originalFetch;});
+test('archived duplicate reports leave the inbox but preserve direct access and plan history',async()=>{
+ const original=db.get('INCIDENT|'+chicken.id),row=JSON.parse(original.data.S);
+ db.set('INCIDENT|'+chicken.id,{...original,data:{S:JSON.stringify({...row,archivedAt:date})}});
+ try{const ws=await call({action:'workspace',id:chicken.id});assert.ok(!ws.incidents.some(r=>r.id===chicken.id));assert.equal(ws.selected.id,chicken.id);assert.deepEqual(ws.selected.plan,row.plan);assert.ok(ws.versions.length);}finally{db.set('INCIDENT|'+chicken.id,original);}
+});
 test('unrelated product changes do not invalidate a plan, relevant supply changes do',()=>{
  const c=initialCatalog(),p=planIncident(c,13,basicConditions());c.version++;
  c.offers.find(o=>o.product_id===2).available_units=1;
@@ -190,4 +195,13 @@ test('regional traffic and priority survive async planning, version persistence 
  assert.deepEqual(row.plan.conditions.regionalTraffic,conditions.regionalTraffic);assert.deepEqual(row.plan.conditions.priorityStoreIds,[2]);assert.ok(row.plan.prioritySummary.allocatedUnits>0);
  assert.ok(lastInterpretation.affectedStores.some(s=>s.id===2));assert.ok(lastInterpretation.trafficRegions['North Bay'].includes('Napa'));
  const ws=await call({action:'workspace',id:row.id,planId:row.plan.id});assert.equal(ws.selected.planCurrent,true);assert.deepEqual(ws.selectedVersion.plan.prioritySummary,row.plan.prioritySummary);
+});
+
+test('missed feasible donor alternative triggers one bounded AI correction and preserves the baseline',async()=>{
+ conditions={...basicConditions(),capacityLimits:[1,2,4].map(supplierId=>({supplierId,availableUnits:50}))};
+ const row=await ai({action:'plan_incident',id:chicken.id,message:'Keep supplier ceilings and transfers off.'});
+ missedExplorations=1;const calls=explorationCalls;
+ const result=await ai({action:'suggest_incident',id:row.id,planId:row.plan.id});
+ assert.equal(explorationCalls-calls,2);assert.equal(result.plan.id,row.plan.id);
+ assert.ok(result.specialSuggestion.candidates.find(c=>c.id===result.specialSuggestion.candidateId).metrics.allocatedUnits>row.plan.allocatedUnits);
 });

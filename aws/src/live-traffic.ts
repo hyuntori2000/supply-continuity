@@ -1,3 +1,4 @@
+import {bestRecoveryIds} from '../../lib/recovery-priority';
 import {z} from 'zod';
 import {eligibleOffers,eligibleTransfers,impactFor,planIncident,planConditions,liveRouteKey,type Catalog,type Conditions,type LiveRouting} from './incident-engine';
 
@@ -53,10 +54,11 @@ export function validateTrafficChoice(candidates:Awaited<ReturnType<typeof compa
  const mostPacks=Math.max(...candidates.map(c=>c.metrics.allocatedUnits));
  const mostPriority=Math.max(...candidates.filter(c=>c.metrics.allocatedUnits===mostPacks).map(c=>c.metrics.priorityAllocated));
  if(candidate.metrics.allocatedUnits!==mostPacks||candidate.metrics.priorityAllocated!==mostPriority)throw new Error('AI selected an alternative with avoidable shortage; no recommendation accepted');
+ if(!bestRecoveryIds(candidates).includes(candidate.id))throw new Error('AI choice violates recovery and delivery-time priority; a cheaper slower plan cannot win');
  const valid=candidates.filter(c=>c.metrics.allocatedUnits===mostPacks&&c.metrics.priorityAllocated===mostPriority),m=candidate.metrics;
- if(choice.reasonCode==='earlier_delivery'&&(m.averageDeliveryMinutes??Infinity)!==Math.min(...valid.map(c=>c.metrics.averageDeliveryMinutes??Infinity)))throw new Error('AI delivery-time justification did not match calculated results');
+ if(choice.reasonCode==='earlier_delivery'&&(m.lastDeliveryMinutes??m.averageDeliveryMinutes??Infinity)!==Math.min(...valid.map(c=>c.metrics.lastDeliveryMinutes??c.metrics.averageDeliveryMinutes??Infinity)))throw new Error('AI delivery-time justification did not match calculated results');
  if(choice.reasonCode==='lower_cost'&&m.cost!==Math.min(...valid.map(c=>c.metrics.cost)))throw new Error('AI cost justification did not match calculated results');
- const reason=choice.reasonCode==='earlier_delivery'?'Bedrock selected the alternative with the lowest pack-weighted average delivery time among options preserving maximum total and priority-store fulfillment.':choice.reasonCode==='lower_cost'?'Bedrock selected the lowest modeled cost among options preserving maximum total and priority-store fulfillment.':'Bedrock selected this balance of delivery time and modeled cost while preserving maximum total and priority-store fulfillment.';
+ const reason=choice.reasonCode==='earlier_delivery'?'Bedrock selected the alternative with the earliest last planned delivery among options preserving maximum total and priority-store fulfillment; average delivery time and then cost break ties.':choice.reasonCode==='lower_cost'?'Bedrock selected the lowest modeled cost only after total fulfillment, priority-store fulfillment and delivery times tie.':'Bedrock selected this alternative under the recovery-first policy: total fulfillment, priority-store fulfillment, last delivery time, average delivery time, then cost.';
  const signed=(n:number)=>`${n>0?'+':''}${Math.round(n*10)/10}`;
  // Render quantitative explanations from verified results, not free-form model claims.
  const tradeoffs=candidates.filter(c=>c.id!==candidate.id).map(c=>`${c.title}: ${signed(c.metrics.allocatedUnits-m.allocatedUnits)} supplied packs, ${signed(c.metrics.cost-m.cost)} USD modeled cost${c.metrics.averageDeliveryMinutes!==null&&m.averageDeliveryMinutes!==null?`, ${signed(c.metrics.averageDeliveryMinutes-m.averageDeliveryMinutes)} min average delivery`:''} versus the recommendation; ${c.waitMinutes} min initial wait.`);
