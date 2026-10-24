@@ -4,6 +4,7 @@ import {createHash,timingSafeEqual} from 'node:crypto';
 import * as continuity from '../../app/api/continuity/route';
 import * as agent from '../../app/api/agent/route';
 import * as cases from '../../app/api/cases/route';
+import * as incidents from './incidents';
 import * as workflow from '../../app/api/workflow/route';
 import * as recalls from '../../app/api/recalls/route';
 import {awsCall,dynamo,get,item,key,put,table,unpack} from './store';
@@ -11,7 +12,7 @@ const routes:Record<string,any>={'/api/continuity':continuity,'/api/agent':agent
 const json=(body:unknown,status=200)=>Response.json(body,{status});
 export function authenticated(header:string|undefined){const expected=process.env.DEMO_ACCESS_HASH;if(!expected||!header?.startsWith('Bearer '))return false;const actual=createHash('sha256').update(header.slice(7)).digest('hex');return expected.length===actual.length&&timingSafeEqual(Buffer.from(expected),Buffer.from(actual));}
 function internalRequest(path:string,method:string,body?:string){return new Request('https://supply-continuity.internal'+path,{method,headers:{origin:'https://supply-continuity.internal','content-type':'application/json'},...(method==='GET'?{}:{body})});}
-async function dispatch(path:string,method:string,body?:string){const fn=routes[path]?.[method];if(!fn)return json({error:'Unknown route or method'},404);return fn(internalRequest(path,method,body));}
+async function dispatch(path:string,method:string,body?:string){if(path==='/api/cases'&&method==='POST'&&incidents.newIncidentActions.has(JSON.parse(body||'{}')?.action))return incidents.POST(internalRequest(path,method,body));const fn=routes[path]?.[method];if(!fn)return json({error:'Unknown route or method'},404);return fn(internalRequest(path,method,body));}
 async function startJob(path:string,body:string){
  const id=crypto.randomUUID(),row={id,path,body,status:'queued',created_at:new Date().toISOString(),expires:Math.floor(Date.now()/1000)+86400};await put('JOB',id,row,true);
  try{await awsCall('lambda',`https://lambda.${process.env.AWS_REGION}.amazonaws.com/2015-03-31/functions/${process.env.AWS_LAMBDA_FUNCTION_NAME}/invocations`,{method:'POST',headers:{'Content-Type':'application/json','X-Amz-Invocation-Type':'Event'},body:JSON.stringify({workerJobId:id})});}catch{await put('JOB',id,{...row,status:'failed',error:'Could not start the AI worker. Retry later.'});return json({error:'Could not start the AI worker.'},503);}
@@ -30,7 +31,7 @@ async function runJob(id:string){
    while(true){const {done,value}=await reader.read();pending+=decoder.decode(value||new Uint8Array(),{stream:!done});const lines=pending.split('\n');pending=lines.pop()||'';for(const line of lines)await record(line);if(done)break;}if(pending.trim())await record(pending);
    await put('JOB',id,{...row,body:undefined,status:failed?'failed':'completed',eventCount:seq,finished_at:new Date().toISOString(),...(failed?{error:'Bedrock did not complete a verified plan. See the agent event for details.'}:{})});
   }else{await put('JOB',id,{...row,body:undefined,status:'completed',result:await response.json(),finished_at:new Date().toISOString()});}
- }catch(e){console.error(JSON.stringify({jobId:id,error:(e as Error).name}));await put('JOB',id,{...row,body:undefined,status:'failed',error:row.path==='/api/cases'?'Case analysis failed. Check Bedrock permissions and retry.':'AI processing failed. Check the job and server logs before retrying.',finished_at:new Date().toISOString()});}
+ }catch(e){console.error(JSON.stringify({jobId:id,error:(e as Error).name}));await put('JOB',id,{...row,body:undefined,status:'failed',error:incidents.newIncidentActions.has(JSON.parse(row.body||'{}')?.action)?(e as Error).message.slice(0,300):row.path==='/api/cases'?'Case analysis failed. Check Bedrock permissions and retry.':'AI processing failed. Check the job and server logs before retrying.',finished_at:new Date().toISOString()});}
 }
 async function pollJob(id:string,after:number){
  const row=await get('JOB',id);if(!row)return json({error:'Job not found'},404);
@@ -58,9 +59,9 @@ export async function handler(event:any){
    else if(path.startsWith('/api/jobs/')&&method==='GET'){
     const id=path.slice('/api/jobs/'.length),after=Number(event.queryStringParameters?.after||0);
     response=/^[\da-f-]{36}$/.test(id)&&Number.isSafeInteger(after)&&after>=0?await pollJob(id,after):json({error:'Invalid job'},400);
-   }else if(method==='POST'&&(path==='/api/agent'||path==='/api/cases'&&parsedBody?.action==='analyze')){
+   }else if(method==='POST'&&(path==='/api/agent'||path==='/api/cases'&&['analyze','analyze_incident','plan_incident'].includes(parsedBody?.action))){
     const schema=path==='/api/agent'?z.object({message:z.string().min(1).max(2000),scenario:scenarioSchema,caseId:z.string().uuid().optional(),source:z.string().min(1).max(8000)}):z.object({action:z.literal('analyze'),id:z.string().uuid()});
-    const validated=schema.safeParse(parsedBody);response=validated.success?await startJob(path,JSON.stringify(validated.data)):json({error:'Invalid AI request'},400);
+    const validated=(incidents.newIncidentActions.has(parsedBody?.action)?incidents.incidentRequest:schema).safeParse(parsedBody);response=validated.success?await startJob(path,JSON.stringify(validated.data)):json({error:'Invalid AI request'},400);
    }else response=await dispatch(path,method,body);
   }
  }catch(e){console.error(JSON.stringify({path,error:(e as Error).name}));response=json({error:'Request failed. Check the request format and server logs.'},500);}

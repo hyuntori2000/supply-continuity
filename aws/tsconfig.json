@@ -1,0 +1,1 @@
+{"extends":"../tsconfig.json","compilerOptions":{"incremental":false,"types":["node","@cloudflare/workers-types"],"paths":{"@/*":["../*"]}},"include":["src/**/*.ts","../cloudflare-env.d.ts"],"exclude":["node_modules","dist"]}

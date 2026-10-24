@@ -1,0 +1,75 @@
+import {z} from 'zod';
+import raw from '../../lib/data/dataset.json';
+import roads from '../../lib/data/supplier-routes.json';
+import {hasExactIdentifier} from '../../lib/evidence';
+
+// Versioned synthetic operational records; persisted once, then read from DynamoDB.
+export function initialCatalog(){
+ const t=raw.tables;
+ return {version:1,updatedAt:new Date().toISOString(),source:'Seeded synthetic records; operator updates are persisted, not external live feeds',snapshot:'2026-10-23T12:00:00-07:00',
+  products:t.products.map(p=>({...p,unitKg:t.product_specs.find(s=>s.product_id===p.id)!.unit_weight_kg,unitCost:t.product_specs.find(s=>s.product_id===p.id)!.unit_cost_usd})),
+  stores:t.stores,farms:t.farms,lots:t.lots.map(l=>({...l,...t.lot_state.find(s=>s.lot_id===l.id)})),inputs:t.lot_inputs,
+  inventory:t.inventory,shipments:t.shipments.map(s=>({...s,status:t.shipment_state.find(st=>st.shipment_id===s.id)?.status||'unknown'})),
+  demand:t.store_product_assumptions.map(d=>({storeId:d.store_id,productId:d.product_id,reserveUnits:Math.ceil(d.daily_demand_packs*d.target_cover_days)})),
+  routes:roads,
+  offers:t.supplier_offers.map(o=>({...o,lotId:o.product_id*5-1,coldChain:'verified_mock',updatedAt:'2026-10-23T12:00:00-07:00'})),
+ };
+}
+export type Catalog=ReturnType<typeof initialCatalog>;
+export type Extraction={lotCode:string|null;product:string|null;summary:string};
+export const planConditions=z.object({objective:z.enum(['time','cost']).default('time'),trafficMultiplier:z.number().min(1).max(3).default(1),blockedSupplierIds:z.array(z.number().int().positive()).max(20).default([]),capacityLimits:z.array(z.object({supplierId:z.number().int().positive(),availableUnits:z.number().int().min(0).max(100000)})).max(20).default([]),assumptions:z.array(z.string().max(300)).max(8).default([]),unappliedRequests:z.array(z.string().max(300)).max(8).default([])}).strict();
+export type Conditions=z.infer<typeof planConditions>;
+export const basicConditions=()=>planConditions.parse({});
+export function descendants(c:Catalog,seeds:number[]){const ids=new Set(seeds);let changed=true;while(changed){changed=false;for(const x of c.inputs)if(ids.has(x.input_lot_id)&&!ids.has(x.output_lot_id)){ids.add(x.output_lot_id);changed=true;}}return ids;}
+export function origins(c:Catalog,lotId:number){const seen=new Set<number>(),farms=new Set<number>();const visit=(id:number)=>{if(seen.has(id))return;seen.add(id);const l=c.lots.find(l=>l.id===id);if(l?.farm_id)farms.add(l.farm_id);c.inputs.filter(x=>x.output_lot_id===id).forEach(x=>visit(x.input_lot_id));};visit(lotId);return [...farms];}
+export function resolveReport(c:Catalog,storeId:number,report:string,x:Extraction){
+ const code=x.lotCode?.toUpperCase();const lot=c.lots.find(l=>l.lot_code.toUpperCase()===code);
+ if(!code||!hasExactIdentifier(report,code)||!lot)return {status:'needs_records',reason:'Lot must appear literally in the report and exist in the database.',lotId:null};
+ const linked=c.inventory.some(i=>i.store_id===storeId&&i.lot_id===lot.id)||c.shipments.some(s=>s.to_store_id===storeId&&s.lot_id===lot.id&&s.status==='delivered');
+ if(!linked)return {status:'needs_records',reason:'No recorded inventory or delivered shipment connects this lot to the selected store.',lotId:null};
+ return {status:'investigating',reason:'Lot/store records verified. A customer report is not contamination evidence.',lotId:lot.id};
+}
+export function impactFor(c:Catalog,lotId:number){
+ const affected=descendants(c,[lotId]),lot=c.lots.find(l=>l.id===lotId);if(!lot)throw new Error('Unknown lot');
+ const product=c.products.find(p=>p.id===lot.product_id)!;
+ const inbound=c.shipments.filter(s=>affected.has(s.lot_id)&&s.to_store_id&&['planned','scheduled','in_transit'].includes(s.status));
+ const targets=c.stores.map(st=>{const stock=c.inventory.filter(i=>i.store_id===st.id&&affected.has(i.lot_id)).reduce((n,i)=>n+i.quantity,0);const incoming=inbound.filter(s=>s.to_store_id===st.id).reduce((n,s)=>n+s.quantity,0);return {...st,heldUnits:stock,inboundUnits:incoming,needUnits:stock+incoming};}).filter(st=>st.needUnits>0);
+ return {product,lot,affectedLotIds:[...affected],affectedLots:c.lots.filter(l=>affected.has(l.id)),originFarms:c.farms.filter(f=>origins(c,lotId).includes(f.id)),targets,heldUnits:targets.reduce((n,s)=>n+s.heldUnits,0),inboundUnits:targets.reduce((n,s)=>n+s.inboundUnits,0),stockValue:targets.reduce((n,s)=>n+s.heldUnits,0)*product.unitCost};
+}
+export function eligibleOffers(c:Catalog,lotId:number,conditions:Conditions,at=new Date().toISOString()){
+ const impact=impactFor(c,lotId),unsafe=descendants(c,c.lots.filter(l=>l.safety_status!=='released').map(l=>l.id));
+ const affected=new Set(impact.affectedLotIds);
+ return c.offers.filter(o=>o.product_id===impact.product.id).map(o=>{
+  const lot=c.lots.find(l=>l.id===o.lotId),reasons:string[]=[];
+  if(!lot||lot.product_id!==impact.product.id)reasons.push('Missing exact-product lot');
+  if(!lot||lot.safety_status!=='released'||unsafe.has(o.lotId)||affected.has(o.lotId)||o.safety_status!=='released')reasons.push('Lot, ancestor, or offer is held/unverified');
+  if(!lot?.expires_on||lot.expires_on<at.slice(0,10))reasons.push('Lot expired or expiry missing');
+  if(o.approval_status!=='approved_mock'||o.coldChain!=='verified_mock')reasons.push('Supplier approval or cold-chain evidence missing');
+  if(lot&&!origins(c,lot.id).includes(o.farm_id))reasons.push('Lot provenance does not match this supplier');
+  if(conditions.blockedSupplierIds.includes(o.farm_id))reasons.push('Operator marked supplier unavailable');
+  const available=Math.min(o.available_units,...conditions.capacityLimits.filter(x=>x.supplierId===o.farm_id).map(x=>x.availableUnits));
+  if(!available)reasons.push('No available stock');
+  return {...o,farm:c.farms.find(f=>f.id===o.farm_id)!,lotCode:lot?.lot_code||'',available,eligible:!reasons.length,reasons};
+ });
+}
+// Shared-capacity min-cost flow. No stock is created, reserved or dispatched.
+export function planIncident(c:Catalog,lotId:number,conditions:Conditions,at=new Date().toISOString()){
+ const impact=impactFor(c,lotId),offers=eligibleOffers(c,lotId,conditions,at),sources=offers.filter(o=>o.eligible),targets=impact.targets;
+ type Edge={to:number;rev:number;cap:number;cost:number;initial:number};
+ const sink=sources.length+targets.length+1,source=sink-1,n=sink+1,g:Edge[][]=Array.from({length:n},()=>[]);
+ // Sources [0,m), targets [m,m+k), super source m+k, sink m+k+1.
+ const add=(a:number,b:number,q:number,cost:number)=>{const e={to:b,rev:g[b].length,cap:q,cost,initial:q};g[a].push(e);g[b].push({to:a,rev:g[a].length-1,cap:0,cost:-cost,initial:0});return e;};
+ const requiredUnits=targets.reduce((n,t)=>n+t.needUnits,0);
+ sources.forEach((s,i)=>add(source,i,s.available,0));
+ targets.forEach((t,j)=>{add(sources.length+j,sink,t.needUnits,0);add(source,sources.length+j,t.needUnits,1e10);});
+ const refs=sources.flatMap((s,i)=>targets.flatMap((t,j)=>{
+  const r=c.routes.find(r=>r.supplierId===s.farm_id&&r.storeId===t.id);if(!r||r.distanceKm<=0||r.drivingMinutes<=0)return [];
+  const etaMinutes=Math.ceil(s.processing_lead_hours*60+r.drivingMinutes*conditions.trafficMultiplier),unitCost=s.unit_cost_usd+r.distanceKm*.04*impact.product.unitKg;
+  const e=add(i,sources.length+j,Math.min(s.available,t.needUnits),Math.round((conditions.objective==='time'?etaMinutes:unitCost)*100));
+  return [{e,s,t,r,etaMinutes,unitCost}];
+ }));
+ let sent=0;while(sent<requiredUnits){const ds=Array(n).fill(Infinity),pn=Array(n).fill(-1),pe=Array(n).fill(-1);ds[source]=0;for(let k=0;k<n-1;k++){let changed=false;for(let a=0;a<n;a++)if(Number.isFinite(ds[a]))g[a].forEach((e,b)=>{if(e.cap>0&&ds[e.to]>ds[a]+e.cost){ds[e.to]=ds[a]+e.cost;pn[e.to]=a;pe[e.to]=b;changed=true;}});if(!changed)break;}if(!Number.isFinite(ds[sink]))break;let q=requiredUnits-sent;for(let v=sink;v!==source;v=pn[v])q=Math.min(q,g[pn[v]][pe[v]].cap);for(let v=sink;v!==source;v=pn[v]){const e=g[pn[v]][pe[v]];e.cap-=q;g[v][e.rev].cap+=q;}sent+=q;}
+ const allocations=refs.filter(x=>x.e.initial>x.e.cap).map(x=>({supplierId:x.s.farm_id,supplier:x.s.farm.name,lot:x.s.lotCode,storeId:x.t.id,store:x.t.name,units:x.e.initial-x.e.cap,etaMinutes:x.etaMinutes,distanceKm:x.r.distanceKm,cost:Math.round((x.e.initial-x.e.cap)*x.unitCost*100)/100}));
+ const allocatedUnits=allocations.reduce((n,a)=>n+a.units,0);
+ return {catalogVersion:c.version,conditions,product:impact.product,requiredUnits,allocatedUnits,unfilledUnits:requiredUnits-allocatedUnits,coverage:requiredUnits?100*allocatedUnits/requiredUnits:null,cost:Math.round(allocations.reduce((n,a)=>n+a.cost,0)),lastDeliveryMinutes:allocations.length?Math.max(...allocations.map(a=>a.etaMinutes)):null,allocations,offers,stores:targets.map(t=>({...t,receivedUnits:allocations.filter(a=>a.storeId===t.id).reduce((n,a)=>n+a.units,0)})),createdAt:at,disclosure:'Synthetic DB stock. Exact-product substitutes only. Road estimates plus supplier preparation; no live traffic, actual order, reservation or dispatch. Inbound and on-hand affected packs are separate replacement needs.'};
+}

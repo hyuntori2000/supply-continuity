@@ -1,0 +1,36 @@
+{
+  "status": "passed",
+  "testedAt": "2026-10-24T10:01:15.145Z",
+  "checks": [
+    "Real Bedrock extraction for a new chicken incident",
+    "New cases do not require E01",
+    "DynamoDB-backed supplier inventory updates",
+    "Stale proposal approval rejected",
+    "Shortage acknowledgement enforced",
+    "Independent saved decision read",
+    "Unknown tomato lot stays pending",
+    "Operator-registered provenance permits reanalysis",
+    "New tomato lot receives an independent exact-product plan"
+  ],
+  "observations": [
+    {
+      "case": "new_chicken_incident",
+      "productId": 2,
+      "required": 1022,
+      "allocated": 50,
+      "unfilled": 972,
+      "model": "amazon.nova-pro-v1:0",
+      "approved": true,
+      "staleApprovalBlocked": true,
+      "shortageAcknowledgementRequired": true
+    },
+    {
+      "case": "newly_registered_tomato_lot",
+      "productId": 3,
+      "required": 95,
+      "allocated": 95,
+      "initiallyNeededRecords": true,
+      "model": "amazon.nova-pro-v1:0"
+    }
+  ]
+}

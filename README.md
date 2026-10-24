@@ -126,3 +126,7 @@ Anyone can read or clone; the owner adds teammates under **Settings → Collabor
 ## Provenance
 
 Built by extending the existing Recall Radar prototype in this workspace, with the user's Retailer/Regulator designs and AWS challenge rubric. The team backend at [Purvab07/AWS-25](https://github.com/Purvab07/AWS-25/tree/8fb398c7ff8cdc99d15a6e10328bb4a77046eb54) informed the product-compatibility and PostgreSQL integration design. Its RDS service and Python matcher are not silently treated as connected services. Route sources and synthetic assumptions are retained under `lib/data/`.
+
+### Independent incidents (v2)
+
+The deployed dashboard now includes **New incident workspace**: submit a new report for a registered product/lot, use Bedrock extraction, review evidence, trace that lot, calculate a product-specific recovery plan, and save an approval. Previously unknown lots can be registered with operator-provided provenance and retried. Operational records and stock updates are persisted in DynamoDB; stale proposals cannot be approved after data changes. See [the workflow and limitations](docs/NEW_INCIDENT_WORKSPACE.md). This uses synthetic records, not external live inventory or lab feeds.
