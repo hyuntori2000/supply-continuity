@@ -130,3 +130,13 @@ Incident receipt time provides context, but old traffic is not reconstructed. Pr
 The `traffic_insight` API action is synchronous, authenticated and uses `Cache-Control: no-store`. Google results are not placed into async jobs, DynamoDB, plan history, exports or browser storage. They remain a temporary preview, cleared on exit or after 15 minutes. They are displayed with Google Maps attribution on a screen containing no non-Google map. Public `/terms.html` and `/privacy.html` explain usage and provider processing.
 
 Set the Google server key in ignored `aws/.local/maps.env` as `GOOGLE_ROUTES_API_KEY`, then use `node aws/scripts/configure-google-routes.mjs` to merge it into the isolated Lambda configuration. Never put this key in Vite variables. Run backend/frontend builds and tests, publish both, then `node aws/scripts/test-traffic-live.mjs` to verify the dedicated QA incident without changing its saved plan. Google Routes must be enabled and billable for the supplied key. These tests incur real Google/Bedrock requests.
+
+### Wildfire exercise
+
+Under **Plan recovery**, **Example: wildfire outage** fills a simulated operator request using an active supplier for the selected product (preferring a North Bay location). Running the recovery agent adds a dispatch exclusion; North Bay cases also assume a 2x regional driving factor. It preserves other ceilings, priorities, safety checks and transfer permissions. This is an additional disruption to an existing incident's replacement network, not a standalone wildfire alert ingestion system.
+
+The map explicitly distinguishes amber **Dispatch excluded** sources from food-safety lot restrictions. After the outage plan saves, the existing AI Special Suggestion flow explores safe alternatives. Acceptance saves a new plan version; approval remains separate. The baseline and previous versions remain reviewable.
+
+Live synthetic QA case `b4af176c-811f-4965-9c8f-cfb114ce7137`: 600 packs before the extra shock; supplier A excluded and North Bay 2x → 400 / 1,022 packs (39.1%). Bedrock suggested enabling safe same-chain transfers, verified at 788 / 1,022 (77.1%), including 388 donor packs, with 234 still unfilled. Modeled cost rose from $3,300 to $6,085; this is a continuity/cost tradeoff, not a free improvement. The proposal was left offered for demonstration. Values depend on the catalog, constraints and later edits.
+
+This exercise does not detect real wildfire, calculate evacuation zones, prove roads safe or include firefighting/dispatch capacity. Assumed 2x traffic is separate from the Google Maps Traffic & timing forecast preview. `node aws/scripts/test-wildfire-live.mjs` creates a dedicated synthetic QA case and calls real Bedrock; it never modifies the filmed case.

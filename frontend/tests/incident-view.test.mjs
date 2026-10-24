@@ -44,3 +44,13 @@ test('recovery retains unused product alternatives and store-transfer quantities
  const i={...chicken,impact:{...chicken.impact,originFarms:[{id:3},{id:4}],targets:[{id:1,chain:'Target',needUnits:100},{id:2,chain:'Walmart',needUnits:200}]},plan:{...chicken.plan,allocations:[{sourceType:'supplier',supplierId:1,storeId:1,units:40},{sourceType:'store',sourceStoreId:7,supplierId:null,storeId:1,units:60},{sourceType:'supplier',supplierId:2,storeId:2,units:150}]}};
  const p=networkProjection(c,i,'recovery','Target');assert.deepEqual(p.sources.map(s=>s.id),[1,2,3,4]);assert.equal(p.allocated,100);assert.equal(p.allocations.length,2);
 });
+
+const {wildfireExample}=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
+test('wildfire exercise uses an active product supplier and preserves safety and operator constraints',()=>{
+ const c={...catalog,farms:[{id:1,city:'Santa Rosa'},{id:4,city:'Gilroy'}]};
+ const i={...chicken,plan:{...chicken.plan,conditions:{blockedSupplierIds:[]},allocations:[{supplierId:4,units:200},{supplierId:1,units:100}]}};
+ const example=wildfireExample(c,i);assert.equal(example.supplierId,1);assert.equal(example.previousUnits,100);assert.match(example.message,/SYNTHETIC WILDFIRE/);assert.match(example.message,/North Bay regional traffic to 2x/);assert.match(example.message,/Do not clear held lots/);assert.match(example.message,/current store-transfer permission/);
+ assert.equal(wildfireExample(c,{...i,planCurrent:false}),null);
+ assert.equal(wildfireExample(c,{...i,plan:{...i.plan,conditions:{blockedSupplierIds:[1,4]}}}),null);
+ assert.equal(wildfireExample(c,{...i,plan:{...i.plan,allocations:[{sourceType:'store',sourceStoreId:1,units:20}]}}),null);
+});

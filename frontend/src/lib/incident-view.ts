@@ -54,3 +54,17 @@ export function incidentDisruption(catalog:any,incident:any){
  return {restricted,sourceIds,recordedRestriction:restricted.length>0,lot:incident.impact.lot,stores:incident.impact.targets.length,units:incident.impact.heldUnits+incident.impact.inboundUnits};
 }
 export const supplierLetter=(id:number)=>id>=1&&id<=26?String.fromCharCode(64+id):String(id);
+
+// A hypothetical second shock to the selected incident's recovery network.
+// No inventory, safety status or plan is changed until the operator runs the agent.
+export function wildfireExample(catalog:any,incident:any){
+ const plan=incident?.plan;if(!plan||incidentMetrics(catalog,incident).stale)return null;
+ const blocked=new Set<number>(plan.conditions?.blockedSupplierIds||[]);
+ const totals=new Map<number,number>();
+ for(const a of plan.allocations||[])if(a.sourceType!=='store'&&a.supplierId&&!blocked.has(a.supplierId))totals.set(a.supplierId,(totals.get(a.supplierId)||0)+a.units);
+ const north=['Santa Rosa','Napa','Petaluma','San Rafael','Fairfield'];
+ const choices=catalog.farms.filter((f:any)=>totals.has(f.id)).sort((a:any,b:any)=>Number(north.includes(b.city))-Number(north.includes(a.city))||(totals.get(b.id)!-totals.get(a.id)!)||a.id-b.id);
+ const source=choices[0];if(!source)return null;
+ const region=north.includes(source.city)?'North Bay':null;
+ return {supplierId:source.id,letter:supplierLetter(source.id),city:source.city,previousUnits:totals.get(source.id),message:`SYNTHETIC WILDFIRE EXERCISE — not a real incident report. A wildfire evacuation has stopped dispatch at supplier ${supplierLetter(source.id)} (supplier ID ${source.id}, ${source.city}). Add supplier ID ${source.id} to blockedSupplierIds; retain every existing exclusion. ${region?'For this exercise, assume North Bay driving takes twice as long: set North Bay regional traffic to 2x, preserving other regional factors and the global factor.':'Preserve all current traffic assumptions.'} Preserve supplier stock ceilings, priority stores, the current store-transfer permission, and the current objective. Recalculate safe exact-product recovery using the remaining sources. Do not clear held lots or label additional food contaminated. Report any remaining shortage. These are simulated operator constraints, not a Google traffic or wildfire feed.`};
+}
