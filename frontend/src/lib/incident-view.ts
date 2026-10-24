@@ -43,3 +43,14 @@ export function networkProjection(catalog:any,incident:any,stage:string,chain:st
  const unaffected=stage!=='original'&&baseline?baseline.stores.filter((s:any)=>!impact.targets.some((t:any)=>t.id===s.id)&&(chain==='All chains'||s.chain===chain)):[];
  return {stores,allocations,sources,unaffected,required:stores.reduce((n:number,s:any)=>n+s.needUnits,0),allocated:allocations.reduce((n:number,a:any)=>n+a.units,0),valid};
 }
+
+export function incidentDisruption(catalog:any,incident:any){
+ const seen=new Set<number>();
+ const visit=(id:number)=>{if(seen.has(id))return;seen.add(id);(catalog.inputs||[]).filter((x:any)=>x.output_lot_id===id).forEach((x:any)=>visit(x.input_lot_id));};
+ visit(incident.lotId);
+ const upstream=catalog.lots.filter((l:any)=>seen.has(l.id));
+ const restricted=upstream.filter((l:any)=>['hold','recalled'].includes(l.safety_status));
+ const sourceIds=[...new Set<number>(restricted.filter((l:any)=>l.farm_id).map((l:any)=>l.farm_id))];
+ return {restricted,sourceIds,recordedRestriction:restricted.length>0,lot:incident.impact.lot,stores:incident.impact.targets.length,units:incident.impact.heldUnits+incident.impact.inboundUnits};
+}
+export const supplierLetter=(id:number)=>id>=1&&id<=26?String.fromCharCode(64+id):String(id);

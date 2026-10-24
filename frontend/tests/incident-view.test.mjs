@@ -31,3 +31,10 @@ test('normal distribution includes unaffected stores and incident phases isolate
  const interrupted=networkProjection(c,i,'interrupted','All chains');assert.equal(interrupted.required,50);assert.equal(interrupted.stores.length,1);assert.deepEqual(interrupted.unaffected.map(s=>s.id),[2]);
  const recovery=networkProjection(c,i,'recovery','All chains');assert.equal(recovery.allocated,0);assert.equal(recovery.unaffected.length,1);
 });
+const {incidentDisruption,supplierLetter}=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
+test('disruption names the restricted ancestor lot without accusing the clean co-source',()=>{
+ const c={lots:[{id:1,farm_id:1,safety_status:'recalled'},{id:2,farm_id:2,safety_status:'released'},{id:3,farm_id:null,safety_status:'recalled'}],inputs:[{input_lot_id:1,output_lot_id:3},{input_lot_id:2,output_lot_id:3}]};
+ const i={lotId:3,impact:{lot:c.lots[2],heldUnits:1220,inboundUnits:367,targets:[{id:1},{id:2}]}};
+ const d=incidentDisruption(c,i);assert.deepEqual(d.sourceIds,[1]);assert.equal(d.units,1587);assert.equal(d.recordedRestriction,true);assert.deepEqual(d.restricted.map(l=>l.id),[1,3]);assert.equal(supplierLetter(1),'A');assert.equal(supplierLetter(6),'F');
+ c.lots.forEach(l=>l.safety_status='released');const allegation=incidentDisruption(c,i);assert.equal(allegation.recordedRestriction,false);assert.deepEqual(allegation.sourceIds,[]);
+});
