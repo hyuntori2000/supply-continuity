@@ -1,0 +1,47 @@
+{
+  "testedAt": "2026-10-24T08:48:34.719461+00:00",
+  "siteUrl": "https://main.dgblsgkgfm7j6.amplifyapp.com/",
+  "kind": "Browser UI verification against actual Bedrock responses",
+  "checks": [
+    "Baseline has no AI comparison",
+    "Warehouse outage comparison shows increased demand and explicit non-comparable-cost caveat",
+    "Starting a second run clears the old comparison",
+    "Second comparison uses the immediately preceding outage plan",
+    "Applied transfer toggle matches completed set_scenario output",
+    "All five completed tool results available in evidence disclosure",
+    "Donor changes total 116 kg; unresolved recovery remains visible"
+  ],
+  "before": {
+    "requiredKg": 1591,
+    "supplierKg": 611,
+    "transferKg": 0,
+    "allocatedKg": 611,
+    "unfilledKg": 980,
+    "lateKg": 372,
+    "modeledCost": 4276,
+    "fullRecoveryMinutes": null
+  },
+  "after": {
+    "requiredKg": 1591,
+    "supplierKg": 611,
+    "transferKg": 116,
+    "allocatedKg": 727,
+    "unfilledKg": 864,
+    "lateKg": 282,
+    "modeledCost": 4720,
+    "fullRecoveryMinutes": null
+  },
+  "donors": [
+    {
+      "name": "Target Alameda",
+      "addedKg": 64
+    },
+    {
+      "name": "Whole Foods Market San Rafael",
+      "addedKg": 52
+    }
+  ],
+  "model": "amazon.nova-pro-v1:0",
+  "planIdPrefix": "54f869b7",
+  "limits": "Synthetic snapshot, no dispatch or stock reservation. Comparison is session-only until exported."
+}
