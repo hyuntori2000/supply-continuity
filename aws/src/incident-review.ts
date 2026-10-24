@@ -29,7 +29,7 @@ export function applyPlanReview(c:Catalog,lotId:number,request:string,draft:Cond
  if(review.verdict==='revise'){
   const quote=review.amendmentEvidence?.trim();
   if(!review.revisedConditions)throw new Error('Review correction requires complete conditions.');
-  const operationalFields=['objective','trafficMultiplier','blockedSupplierIds','capacityLimits'] as const;
+  const operationalFields=['objective','trafficMultiplier','blockedSupplierIds','capacityLimits','allowStoreTransfers','maxTransferMinutes'] as const;
   const operationalChange=operationalFields.some(key=>JSON.stringify(draft[key])!==JSON.stringify(review.revisedConditions![key]));
   if(operationalChange&&(!quote||quote.length<8||!request.toLowerCase().includes(quote.toLowerCase())))throw new Error('Review correction lacks a matching operator instruction. Clarify the request and retry.');
   // Descriptive metadata may be corrected without granting different stock,
@@ -44,6 +44,7 @@ export function applyPlanReview(c:Catalog,lotId:number,request:string,draft:Cond
  if(total!==plan.allocatedUnits||total+plan.unfilledUnits!==plan.requiredUnits)throw new Error('Allocation conservation check failed');
  for(const store of plan.stores)if(store.receivedUnits>store.needUnits)throw new Error('Store demand exceeded');
  for(const offer of plan.offers)if(plan.allocations.filter(a=>a.supplierId===offer.farm_id).reduce((n,a)=>n+a.units,0)>offer.available)throw new Error('Supplier capacity exceeded');
+ for(const donor of plan.transferSources)if(plan.allocations.filter(a=>a.sourceKey===donor.id).reduce((n,a)=>n+a.units,0)>donor.available)throw new Error('Donor surplus exceeded');
  return {plan,conditions,review,changed:JSON.stringify(conditions)!==JSON.stringify(draft)};
 }
 

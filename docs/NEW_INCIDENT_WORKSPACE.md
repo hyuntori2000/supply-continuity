@@ -4,7 +4,7 @@ The application root is now the incident dashboard. There is no separate E01 cal
 
 Choose **Romaine**, **Raw Chicken** or **Tomatoes** to filter the incident inbox and open that product’s newest case. Choose a specific case in the inbox to update all metrics, maps, allocation rows and timeline together. Products without incidents show recorded supply locations, not a fabricated recovery plan. **All incidents** includes unmatched reports. **New incident** opens intake within this same dashboard; submitting automatically selects the newly saved case. The selected ID survives refresh through the URL and session selection.
 
-The older E01-specific frontend calculator and controls are no longer mounted by `frontend/src/App.tsx`. Legacy endpoints and source are retained for compatibility and regression tests, but their numbers are not merged into new incidents. The previous same-chain, regional-delay and direct-dispatch demo controls are not exposed in the unified UI until they can use this authoritative multi-product engine.
+The older E01-specific frontend calculator and controls are no longer mounted by `frontend/src/App.tsx`. Legacy endpoints and source are retained for compatibility and regression tests, but their numbers are not merged into new incidents. Same-chain transfers now use this authoritative multi-product engine. Historical regional-delay and direct-dispatch controls remain unavailable.
 
 ## End-to-end demo
 
@@ -32,7 +32,7 @@ This is **database-backed synthetic operations**, not a live retailer ERP, labor
 - Exact-product replacements with known lot provenance, released lot/ancestors, unexpired stock, mock supplier approval and mock cold-chain verification.
 - Replacement demand is affected on-hand packs plus separate planned/scheduled/in-transit store shipments. Delivered shipments are not counted twice.
 - Supplier available units are uncommitted packs. Bedrock may lower their planning ceiling, but cannot manufacture stock or increase the DB's stock record.
-- Supported AI updates: supplier availability, per-supplier spare-stock ceilings, time/cost objective, global driving multiplier. Unsupported regional routing, highway avoidance, same-chain transfers, arbitrary deadlines or product substitution are explicitly reported as unapplied in this workspace. Historical E01-only controls are not part of the unified dashboard.
+- Supported AI updates: supplier availability, per-supplier spare-stock ceilings, time/cost objective, global driving multiplier, opt-in same-chain transfers and their driving-time limit. Unsupported regional routing, highway avoidance, cross-chain transfers, arbitrary deadlines or product substitution are explicitly reported as unapplied in this workspace. Historical E01-only controls are not part of the unified dashboard.
 - Stored road estimates plus supplier processing lead time produce delivery estimates. Map lines are allocation flows, not actual road paths. There is no live traffic service.
 - Each incident plan is independent and makes **no stock reservation**. Multiple proposed or approved demo plans must not be interpreted as simultaneous executable orders. Fleet scheduling and cross-incident reservations are out of scope.
 
@@ -58,7 +58,7 @@ The UI shows review outcome and draft/final allocated quantities. A correction i
 
 ### Version history and restored supply network
 
-The dashboard retains Original supply / Interrupted / Recovery tabs, a map/relationships switch, chain filtering, permanent supplier quantity labels, and per-supplier allocation cards. All of them project the selected incident's saved plan. Original/interrupted dashed lines show ancestry relationships, not known per-source quantities; source shares were not recorded. Recovery lines show exact proposed pack allocations and saved road distance/ETA. Current seed products use 1 kg packs. No same-chain transfer toggle is exposed in this unified engine yet.
+The dashboard retains Original supply / Interrupted / Recovery tabs, a map/relationships switch, chain filtering, permanent supplier quantity labels, and per-supplier allocation cards. All of them project the selected incident's saved plan. Original/interrupted dashed lines show ancestry relationships, not known per-source quantities; source shares were not recorded. Recovery lines show exact proposed pack allocations and saved road distance/ETA. Current seed products use 1 kg packs. The same-chain transfer toggle invokes Bedrock and saves a new proposal through this same engine; turquoise arrows identify donor stores.
 
 Each successful agent calculation is saved in a separate DynamoDB item under `INCIDENTPLAN#<incidentId>`, with plan ID, sequential version, parent plan ID, impact, conditions, allocations, comparison baseline and Bedrock audit. Existing latest plans are preserved as V0 when the next version is created. This cannot recover versions overwritten before version storage existed. The current incident holds the current-plan pointer/content. Calculation snapshots are immutable; current approval status remains on the incident and event timeline. Historical snapshots retain their status at calculation time.
 
@@ -81,3 +81,13 @@ Legacy narrative assumptions are not inherited into a new AI request: numeric op
 ### Readable interruption and redistribution map
 
 Supplier IDs map consistently to A–F and store markers use stable store IDs 1–27, also shown in the allocation table. A disruption card identifies restricted ancestor lots, the affected output lot, store count and pack total. It only names source farms attached to actually held/recalled ancestor lots; a clean co-source is not marked as a failed supplier. With no recorded restriction, the card says reported exposure rather than a confirmed interruption. Recovery keeps the affected source visible alongside replacement sources, uses red dashed restriction paths and solid colored allocation arrows, and displays source pack totals permanently. Clicking a numbered store shows its allocations, road km and ETA. All arrows are logical flow directions, not actual road geometry.
+
+## Additive network migration
+
+Authenticated `POST /api/cases` with `{ "action": "expand_network", "expectedVersion": <current catalog version> }` expands a legacy seeded catalog once. It preserves all existing lots, safety states, supplier stock edits and incident histories, adds seven product offers and nine synthetic donor inventories, and increments the catalog version. Saved plans are revalidated against the new supply set; replan before approval. The migration is idempotent (`networkVersion: 1`). This explicit migration is required after a fresh legacy seed as well.
+
+### Verified multi-source demonstration (2026-10-24)
+
+The synthetic integration chicken case `4843c636-e455-44ec-8fe3-62781b58bc57` needs 1,022 packs across 18 stores. With the expanded catalog, actual Bedrock inference produced a supplier-only plan using multiple safe sources. An operator instruction limiting A, B and D to 200 packs each resulted in 600 allocated / 422 unfilled (58.7%). Clicking **Enable transfers** invoked Bedrock, preserved those ceilings, and produced 600 supplier packs + 388 safe store packs = 988 / 1,022 (96.7%); 34 packs remained unfilled. Donors were stores #1, #4, #10, #16, #19 and #25. These are computed synthetic proposals, not fulfilled deliveries or a promise that every incident improves by the same amount.
+
+To repeat the visible change, select that case and click **Disable transfers**, wait for the saved plan, then click **Enable transfers**. The 200-pack ceilings must still be present. The 1/2/3 map phases show the recorded product network, restricted-lot paths and the proposed recovery respectively. Expand **Supplier capabilities** for the product-to-supplier matrix and **Store transfer allocation** for donor quantities. Scripts in `aws/scripts/test-expanded-network.mjs` provide the explicit migration and baseline acceptance steps; they intentionally modify only the named synthetic QA case.

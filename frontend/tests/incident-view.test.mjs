@@ -38,3 +38,9 @@ test('disruption names the restricted ancestor lot without accusing the clean co
  const d=incidentDisruption(c,i);assert.deepEqual(d.sourceIds,[1]);assert.equal(d.units,1587);assert.equal(d.recordedRestriction,true);assert.deepEqual(d.restricted.map(l=>l.id),[1,3]);assert.equal(supplierLetter(1),'A');assert.equal(supplierLetter(6),'F');
  c.lots.forEach(l=>l.safety_status='released');const allegation=incidentDisruption(c,i);assert.equal(allegation.recordedRestriction,false);assert.deepEqual(allegation.sourceIds,[]);
 });
+
+test('recovery retains unused product alternatives and store-transfer quantities under retailer filters',()=>{
+ const c={...catalog,farms:[{id:1},{id:2},{id:3},{id:4},{id:6}],offers:[1,2,3,4].map(farm_id=>({farm_id,product_id:2})).concat([{farm_id:6,product_id:3}])};
+ const i={...chicken,impact:{...chicken.impact,originFarms:[{id:3},{id:4}],targets:[{id:1,chain:'Target',needUnits:100},{id:2,chain:'Walmart',needUnits:200}]},plan:{...chicken.plan,allocations:[{sourceType:'supplier',supplierId:1,storeId:1,units:40},{sourceType:'store',sourceStoreId:7,supplierId:null,storeId:1,units:60},{sourceType:'supplier',supplierId:2,storeId:2,units:150}]}};
+ const p=networkProjection(c,i,'recovery','Target');assert.deepEqual(p.sources.map(s=>s.id),[1,2,3,4]);assert.equal(p.allocated,100);assert.equal(p.allocations.length,2);
+});

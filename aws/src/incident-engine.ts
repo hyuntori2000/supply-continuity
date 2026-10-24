@@ -1,6 +1,7 @@
 import {z} from 'zod';
 import raw from '../../lib/data/dataset.json';
 import roads from '../../lib/data/supplier-routes.json';
+import storeRoads from '../../lib/data/store-routes.json';
 import {hasExactIdentifier} from '../../lib/evidence';
 
 // Versioned synthetic operational records; persisted once, then read from DynamoDB.
@@ -17,7 +18,7 @@ export function initialCatalog(){
 }
 export type Catalog=ReturnType<typeof initialCatalog>;
 export type Extraction={lotCode:string|null;product:string|null;summary:string};
-export const planConditions=z.object({objective:z.enum(['time','cost']).default('time'),trafficMultiplier:z.number().min(1).max(3).default(1),blockedSupplierIds:z.array(z.number().int().positive()).max(20).default([]),capacityLimits:z.array(z.object({supplierId:z.number().int().positive(),availableUnits:z.number().int().min(0).max(100000)})).max(20).default([]),assumptions:z.array(z.string().max(300)).max(8).default([]),unappliedRequests:z.array(z.string().max(300)).max(8).default([])}).strict();
+export const planConditions=z.object({allowStoreTransfers:z.boolean().default(false),maxTransferMinutes:z.number().min(15).max(180).default(90),objective:z.enum(['time','cost']).default('time'),trafficMultiplier:z.number().min(1).max(3).default(1),blockedSupplierIds:z.array(z.number().int().positive()).max(20).default([]),capacityLimits:z.array(z.object({supplierId:z.number().int().positive(),availableUnits:z.number().int().min(0).max(100000)})).max(20).default([]),assumptions:z.array(z.string().max(300)).max(8).default([]),unappliedRequests:z.array(z.string().max(300)).max(8).default([])}).strict();
 export type Conditions=z.infer<typeof planConditions>;
 export const basicConditions=()=>planConditions.parse({});
 export function descendants(c:Catalog,seeds:number[]){const ids=new Set(seeds);let changed=true;while(changed){changed=false;for(const x of c.inputs)if(ids.has(x.input_lot_id)&&!ids.has(x.output_lot_id)){ids.add(x.output_lot_id);changed=true;}}return ids;}
@@ -52,9 +53,23 @@ export function eligibleOffers(c:Catalog,lotId:number,conditions:Conditions,at=n
   return {...o,farm:c.farms.find(f=>f.id===o.farm_id)!,lotCode:lot?.lot_code||'',available,eligible:!reasons.length,reasons};
  });
 }
-// Shared-capacity min-cost flow. No stock is created, reserved or dispatched.
+export function eligibleTransfers(c:Catalog,lotId:number,conditions:Conditions,at=new Date().toISOString()){
+ if(!conditions.allowStoreTransfers)return [];
+ const impact=impactFor(c,lotId),affectedStores=new Set(impact.targets.map(s=>s.id));
+ const unsafe=descendants(c,c.lots.filter(l=>l.safety_status!=='released').map(l=>l.id));
+ return c.stores.filter(st=>!affectedStores.has(st.id)).flatMap(st=>{
+  const rows=c.inventory.filter(i=>i.store_id===st.id).map(i=>({i,lot:c.lots.find(l=>l.id===i.lot_id)})).filter(({i,lot})=>lot?.product_id===impact.product.id&&lot.safety_status==='released'&&!unsafe.has(lot.id)&&!!lot.expires_on&&lot.expires_on>=at.slice(0,10)&&['verified','verified_mock'].includes(i.cold_chain_status));
+  const reserve=c.demand.find(d=>d.storeId===st.id&&d.productId===impact.product.id)?.reserveUnits;
+  if(reserve===undefined)return [];
+  const onHand=rows.reduce((n,{i})=>n+Math.max(0,i.quantity-i.reserved_quantity),0);let spare=Math.max(0,onHand-reserve);
+  return rows.flatMap(({i,lot})=>{const available=Math.min(spare,Math.max(0,i.quantity-i.reserved_quantity));spare-=available;if(!available)return [];
+   return [{id:`store:${st.id}:lot:${lot!.id}`,sourceStoreId:st.id,store:st,lotId:lot!.id,lotCode:lot!.lot_code,available,reserveUnits:reserve,safeUnreservedUnits:onHand}];
+  });
+ });
+}
+// Supplier offers and safe store surpluses compete in the same capacitated flow.
 export function planIncident(c:Catalog,lotId:number,conditions:Conditions,at=new Date().toISOString()){
- const impact=impactFor(c,lotId),offers=eligibleOffers(c,lotId,conditions,at),sources=offers.filter(o=>o.eligible),targets=impact.targets;
+ const impact=impactFor(c,lotId),offers=eligibleOffers(c,lotId,conditions,at),transferSources=eligibleTransfers(c,lotId,conditions,at),sources:any[]=[...offers.filter(o=>o.eligible).map(o=>({...o,sourceType:'supplier',sourceKey:'supplier:'+o.id})),...transferSources.map(o=>({...o,sourceType:'store',sourceKey:o.id}))],targets=impact.targets;
  type Edge={to:number;rev:number;cap:number;cost:number;initial:number};
  const sink=sources.length+targets.length+1,source=sink-1,n=sink+1,g:Edge[][]=Array.from({length:n},()=>[]);
  // Sources [0,m), targets [m,m+k), super source m+k, sink m+k+1.
@@ -63,21 +78,24 @@ export function planIncident(c:Catalog,lotId:number,conditions:Conditions,at=new
  sources.forEach((s,i)=>add(source,i,s.available,0));
  targets.forEach((t,j)=>{add(sources.length+j,sink,t.needUnits,0);add(source,sources.length+j,t.needUnits,1e10);});
  const refs=sources.flatMap((s,i)=>targets.flatMap((t,j)=>{
-  const r=c.routes.find(r=>r.supplierId===s.farm_id&&r.storeId===t.id);if(!r||r.distanceKm<=0||r.drivingMinutes<=0)return [];
-  const etaMinutes=Math.ceil(s.processing_lead_hours*60+r.drivingMinutes*conditions.trafficMultiplier),unitCost=s.unit_cost_usd+r.distanceKm*.04*impact.product.unitKg;
+  const transfer=s.sourceType==='store';
+  if(transfer&&(s.store.chain!==t.chain||s.sourceStoreId===t.id))return [];
+  const r=transfer?storeRoads.find(r=>r.fromStoreId===s.sourceStoreId&&r.toStoreId===t.id):c.routes.find(r=>r.supplierId===s.farm_id&&r.storeId===t.id);
+  if(!r||r.distanceKm<=0||r.drivingMinutes<=0||transfer&&r.drivingMinutes*conditions.trafficMultiplier>conditions.maxTransferMinutes)return [];
+  const etaMinutes=Math.ceil((transfer?20:s.processing_lead_hours*60)+r.drivingMinutes*conditions.trafficMultiplier),unitCost=(transfer?impact.product.unitCost:s.unit_cost_usd)+r.distanceKm*.04*impact.product.unitKg;
   const e=add(i,sources.length+j,Math.min(s.available,t.needUnits),Math.round((conditions.objective==='time'?etaMinutes:unitCost)*100));
   return [{e,s,t,r,etaMinutes,unitCost}];
  }));
  let sent=0;while(sent<requiredUnits){const ds=Array(n).fill(Infinity),pn=Array(n).fill(-1),pe=Array(n).fill(-1);ds[source]=0;for(let k=0;k<n-1;k++){let changed=false;for(let a=0;a<n;a++)if(Number.isFinite(ds[a]))g[a].forEach((e,b)=>{if(e.cap>0&&ds[e.to]>ds[a]+e.cost){ds[e.to]=ds[a]+e.cost;pn[e.to]=a;pe[e.to]=b;changed=true;}});if(!changed)break;}if(!Number.isFinite(ds[sink]))break;let q=requiredUnits-sent;for(let v=sink;v!==source;v=pn[v])q=Math.min(q,g[pn[v]][pe[v]].cap);for(let v=sink;v!==source;v=pn[v]){const e=g[pn[v]][pe[v]];e.cap-=q;g[v][e.rev].cap+=q;}sent+=q;}
- const allocations=refs.filter(x=>x.e.initial>x.e.cap).map(x=>({supplierId:x.s.farm_id,supplier:x.s.farm.name,lot:x.s.lotCode,storeId:x.t.id,store:x.t.name,units:x.e.initial-x.e.cap,etaMinutes:x.etaMinutes,distanceKm:x.r.distanceKm,cost:Math.round((x.e.initial-x.e.cap)*x.unitCost*100)/100}));
+ const allocations=refs.filter(x=>x.e.initial>x.e.cap).map(x=>({sourceType:x.s.sourceType,sourceKey:x.s.sourceKey,sourceStoreId:x.s.sourceStoreId||null,supplierId:x.s.sourceType==='supplier'?x.s.farm_id:null,supplier:x.s.sourceType==='supplier'?x.s.farm.name:`Store #${x.s.sourceStoreId} · ${x.s.store.chain} ${x.s.store.city}`,lot:x.s.lotCode,storeId:x.t.id,store:x.t.name,units:x.e.initial-x.e.cap,etaMinutes:x.etaMinutes,distanceKm:x.r.distanceKm,cost:Math.round((x.e.initial-x.e.cap)*x.unitCost*100)/100}));
  const allocatedUnits=allocations.reduce((n,a)=>n+a.units,0);
- return {catalogVersion:c.version,conditions,product:impact.product,requiredUnits,allocatedUnits,unfilledUnits:requiredUnits-allocatedUnits,coverage:requiredUnits?100*allocatedUnits/requiredUnits:null,cost:Math.round(allocations.reduce((n,a)=>n+a.cost,0)),lastDeliveryMinutes:allocations.length?Math.max(...allocations.map(a=>a.etaMinutes)):null,allocations,offers,stores:targets.map(t=>({...t,receivedUnits:allocations.filter(a=>a.storeId===t.id).reduce((n,a)=>n+a.units,0)})),createdAt:at,disclosure:'Synthetic DB stock. Exact-product substitutes only. Road estimates plus supplier preparation; no live traffic, actual order, reservation or dispatch. Inbound and on-hand affected packs are separate replacement needs.'};
+ return {catalogVersion:c.version,conditions,product:impact.product,requiredUnits,allocatedUnits,unfilledUnits:requiredUnits-allocatedUnits,coverage:requiredUnits?100*allocatedUnits/requiredUnits:null,cost:Math.round(allocations.reduce((n,a)=>n+a.cost,0)),lastDeliveryMinutes:allocations.length?Math.max(...allocations.map(a=>a.etaMinutes)):null,allocations,offers,transferSources,supplierUnits:allocations.filter(a=>a.sourceType==='supplier').reduce((n,a)=>n+a.units,0),transferUnits:allocations.filter(a=>a.sourceType==='store').reduce((n,a)=>n+a.units,0),stores:targets.map(t=>({...t,receivedUnits:allocations.filter(a=>a.storeId===t.id).reduce((n,a)=>n+a.units,0)})),createdAt:at,disclosure:'Synthetic DB stock. Exact-product substitutes only. Road estimates plus supplier preparation; no live traffic, actual order, reservation or dispatch. Inbound and on-hand affected packs are separate replacement needs.'};
 }
 
 // Ignore unrelated catalog revisions only when every computed dependency still matches.
 export function planIsCurrent(c:Catalog,lotId:number,plan:any){
  if(!plan)return false;
  const fresh=planIncident(c,lotId,plan.conditions);
- const fields=['product','requiredUnits','allocatedUnits','unfilledUnits','coverage','cost','lastDeliveryMinutes','allocations','offers','stores'];
- return fields.every(k=>JSON.stringify((fresh as any)[k])===JSON.stringify(plan[k]));
+ const fields=['product','requiredUnits','allocatedUnits','unfilledUnits','coverage','cost','lastDeliveryMinutes','allocations','offers','stores','transferSources'];
+ return fields.every(k=>JSON.stringify((fresh as any)[k])===JSON.stringify(plan[k]??(k==='transferSources'?[]:undefined)));
 }

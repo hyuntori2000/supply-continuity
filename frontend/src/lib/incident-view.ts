@@ -39,7 +39,7 @@ export function networkProjection(catalog:any,incident:any,stage:string,chain:st
  const stores=allStores.filter((s:any)=>chain==='All chains'||s.chain===chain);
  const ids=new Set(stores.map((s:any)=>s.id));
  const allocations=stage==='recovery'&&valid?(incident.plan?.allocations||[]).filter((a:any)=>ids.has(a.storeId)):[];
- const sources=stage==='recovery'?catalog.farms.filter((f:any)=>allocations.some((a:any)=>a.supplierId===f.id)):stage==='original'&&baseline?baseline.sources.filter((f:any)=>stores.some((s:any)=>s.sourceIds.includes(f.id))):impact.originFarms;
+ const sources=stage==='recovery'?catalog.farms.filter((f:any)=>(catalog.offers||[]).some((o:any)=>o.product_id===impact.product?.id&&o.farm_id===f.id)||allocations.some((a:any)=>a.supplierId===f.id)):stage==='original'&&baseline?baseline.sources.filter((f:any)=>stores.some((s:any)=>s.sourceIds.includes(f.id))):impact.originFarms;
  const unaffected=stage!=='original'&&baseline?baseline.stores.filter((s:any)=>!impact.targets.some((t:any)=>t.id===s.id)&&(chain==='All chains'||s.chain===chain)):[];
  return {stores,allocations,sources,unaffected,required:stores.reduce((n:number,s:any)=>n+s.needUnits,0),allocated:allocations.reduce((n:number,a:any)=>n+a.units,0),valid};
 }

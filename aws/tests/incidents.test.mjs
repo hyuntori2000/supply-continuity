@@ -143,3 +143,13 @@ test('overlong reviewer display text cannot break a valid structured calculation
  conditions=basicConditions();reviewOverride={verdict:'consistent',summary:'Verified numerical conditions. '.repeat(50),findings:['A descriptive finding. '.repeat(40)],revisedConditions:null,amendmentEvidence:null};
  const row=await ai({action:'plan_incident',id:chicken.id,message:'Generate a safe recovery plan.'});assert.equal(row.plan.allocatedUnits,50);assert.ok(row.planAudit.reflection.summary.length<=600);assert.ok(row.planAudit.reflection.findings[0].length<=300);reviewOverride=null;
 });
+
+test('network migration is additive, version-guarded and idempotent; transfers save as a new incident plan',async()=>{
+ const before=await call({action:'workspace',id:chicken.id}),oldPlanId=before.selected.plan.id;
+ const migrated=await call({action:'expand_network',expectedVersion:before.catalog.version});assert.equal(migrated.offers,13);
+ const after=await call({action:'workspace',id:chicken.id});assert.equal(after.catalog.networkVersion,1);assert.equal(after.selected.plan.id,oldPlanId);assert.equal(after.selected.planCurrent,false);
+ const rejected=await handler(event({action:'expand_network',expectedVersion:before.catalog.version}));assert.equal(rejected.statusCode,400);
+ assert.equal((await call({action:'expand_network',expectedVersion:after.catalog.version})).version,after.catalog.version);
+ conditions={...basicConditions(),allowStoreTransfers:true,capacityLimits:[{supplierId:1,availableUnits:50},{supplierId:2,availableUnits:50},{supplierId:4,availableUnits:50}]};
+ const row=await ai({action:'plan_incident',id:chicken.id,message:'Enable same-chain transfers and keep the supplier ceilings at 50 packs.'});assert.ok(row.plan.transferUnits>0);assert.notEqual(row.plan.id,oldPlanId);assert.equal((await call({action:'workspace',id:chicken.id})).selected.planCurrent,true);
+});
