@@ -10,6 +10,16 @@ A working food-continuity demo for a **Bay Area regional grocery replenishment m
 
 The complete AWS version uses **Amplify → dedicated API Gateway → Lambda → Bedrock + DynamoDB**. [Open the protected demo](https://main.dgblsgkgfm7j6.amplifyapp.com) and obtain the team access code privately from the owner. See [`aws/README.md`](aws/README.md) for deployment, verified results, and pause/resume controls. The team’s original `AWS25` API is separate and is not modified by these controls.
 
+## Same-chain store recovery
+
+Enable **Same-chain store recovery** above the map, or ask Bedrock **Use same-chain stores**. The existing min-cost-flow allocation combines supplier offers with released on-hand lots at other retail stores of the same chain. Transfers are opt-in; supplier-only behavior is the default.
+
+The engine protects reserved inventory and `ceil(daily demand × target cover days)` at every donor, excludes disrupted recipient stores from donating, enforces exact product/lot and cold-chain checks, requires a mock transfer agreement and a valid directional OSRM route, and caps transfer ETA at 120 modeled minutes. Store capacity is shared across all lots and recipients, so no donor stock is counted twice. Existing on-hand stock can bypass a warehouse closure; closure does not itself establish contamination. New inbound allocations cannot be donated again.
+
+In the fixed demo snapshot, enabling transfers allocates **336 kg from six stores + 884 kg from suppliers**. Modeled regional cost changes from **$6,940 to $6,214**, and recovery from **215 to 186 minutes**. With Oakland closed, transfers cover another **116 kg**, reducing the remaining shortage from **980 to 864 kg**. These are synthetic comparisons, not validated inventory availability or promised savings. Transfer costs include a synthetic inventory value, handling and distance cost; internal stock is not treated as free.
+
+The map uses amber dashed store-to-store flows. Expand **View quantities** for origin, destination, lot, kilograms, ETA and protected stock. The allocation table labels store transfers separately. Bedrock selects the scenario setting; deterministic code enforces stock and safety constraints. Approval records a proposal only and does not reserve or dispatch inventory. This is a static snapshot, not a concurrent live stock reservation system.
+
 ## Deploy the independent frontend on AWS
 
 Use [`frontend/`](frontend/) for the standalone React/Vite app. It has its own lockfile, API configuration, tests and static build. [`amplify.yml`](amplify.yml) deploys that subdirectory through AWS Amplify; the original root app below still targets Sites/Cloudflare. See the [frontend deployment and API guide](frontend/README.md).

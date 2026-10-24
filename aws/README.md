@@ -87,3 +87,9 @@ AWS acceptance verification on October 24, 2026 (Pacific time) passed:
 These are demonstration results, not measured illness prevention or guaranteed delivery times. No purchase, inventory reservation, actual hold, notification, or dispatch occurs. Suppliers/inventory/incidents are synthetic; real store locations and modeled road distances are retained. The shortage is surfaced, not hidden.
 
 See [AWS HTTP API quotas](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-quotas.html) and [Lambda execution-role credentials](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html) for the platform constraints behind this design.
+
+### Code-only backend updates
+
+After `npm run build --prefix aws` and `npm test --prefix aws`, `npm run publish:backend --prefix aws` updates only the existing app Lambda code using its revision ID. It backs up the previous ZIP in ignored `.local/previous-function.zip` and preserves environment, role, API routes and data. Publish the matching frontend separately. Existing proposals whose computed fingerprint changes must be recalculated before approval.
+
+`node aws/scripts/test-transfers-live.mjs` checks live store-transfer allocation and makes one paid Bedrock agent run. It creates demo proposals, not approvals or shipments. Results are written under ignored `aws/.local/` without credentials.

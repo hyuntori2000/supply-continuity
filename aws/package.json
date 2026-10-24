@@ -12,7 +12,8 @@
     "test:live": "node scripts/test-live.mjs",
     "connect:isolated": "node scripts/connect-isolated.mjs",
     "connection": "node scripts/connection.mjs",
-    "publish:frontend": "node scripts/publish-frontend.mjs"
+    "publish:frontend": "node scripts/publish-frontend.mjs",
+    "publish:backend": "node scripts/publish-backend.mjs"
   },
   "dependencies": {
     "aws4fetch": "1.0.20",
