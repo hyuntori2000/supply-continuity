@@ -23,7 +23,7 @@ process.env.DEMO_ACCESS_HASH=createHash('sha256').update('independent-test').dig
 const originalFetch=globalThis.fetch,db=new Map(),workers=[];let extraction={product:'Chicken',lotCode:'DEMO-P2-BLEND-A',summary:'Fictional complaint; no causal finding.'},conditions=basicConditions(),reviewOverride=null,lastInterpretation=null;
 const key=i=>i.pk.S+'|'+i.sk.S;
 globalThis.fetch=async(input,init)=>{const req=input instanceof Request?input:new Request(input,init),host=new URL(req.url).hostname,b=JSON.parse(await req.text());
- if(host.startsWith('bedrock-runtime.')){const name=b.toolConfig.toolChoice.tool.name;if(name==='apply_recovery_conditions')lastInterpretation=JSON.parse(b.messages[0].content[0].text);return Response.json({output:{message:{content:[{toolUse:{name,input:name==='extract_report'?extraction:name==='review_recovery_plan'?(reviewOverride||{verdict:'consistent',summary:'The draft follows the operator request.',findings:['Stock limits and remaining shortage checked.'],revisedConditions:null,amendmentEvidence:null}):conditions}}]}}});}
+ if(host.startsWith('bedrock-runtime.')){const name=b.toolConfig.toolChoice.tool.name;if(name==='apply_recovery_conditions')lastInterpretation=JSON.parse(b.messages[0].content[0].text);return Response.json({output:{message:{content:[{toolUse:{name,input:name==='explore_recovery_alternatives'?{proposals:[{title:'Safe store surplus',rationale:'Reduce unmet demand',allowStoreTransfers:true,maxTransferMinutes:90,objective:'time'}]}:name==='select_recovery_alternative'?{candidateId:'option-1',reason:'More verified packs',tradeoff:'Needs transfer permission'}:name==='extract_report'?extraction:name==='review_recovery_plan'?(reviewOverride||{verdict:'consistent',summary:'The draft follows the operator request.',findings:['Stock limits and remaining shortage checked.'],revisedConditions:null,amendmentEvidence:null}):conditions}}]}}});}
  if(host.startsWith('lambda.')){workers.push(b);return new Response('',{status:202});}
  const action=req.headers.get('x-amz-target')?.split('.').pop();
  if(action==='GetItem')return Response.json({Item:db.get(key(b.Key))});
@@ -152,4 +152,27 @@ test('network migration is additive, version-guarded and idempotent; transfers s
  assert.equal((await call({action:'expand_network',expectedVersion:after.catalog.version})).version,after.catalog.version);
  conditions={...basicConditions(),allowStoreTransfers:true,capacityLimits:[{supplierId:1,availableUnits:50},{supplierId:2,availableUnits:50},{supplierId:4,availableUnits:50}]};
  const row=await ai({action:'plan_incident',id:chicken.id,message:'Enable same-chain transfers and keep the supplier ceilings at 50 packs.'});assert.ok(row.plan.transferUnits>0);assert.notEqual(row.plan.id,oldPlanId);assert.equal((await call({action:'workspace',id:chicken.id})).selected.planCurrent,true);
+});
+
+test('AI explores without replacing the plan; consent creates a separate version and blocks reuse',async()=>{
+ conditions={...basicConditions(),capacityLimits:[1,2,4].map(supplierId=>({supplierId,availableUnits:50}))};
+ const row=await ai({action:'plan_incident',id:chicken.id,message:'Keep suppliers at 50 packs and store transfers off.'});
+ const explored=await ai({action:'suggest_incident',id:row.id,planId:row.plan.id});
+ const s=explored.specialSuggestion;assert.equal(explored.plan.id,row.plan.id);assert.ok(s.candidates[0].metrics.allocatedUnits>row.plan.allocatedUnits);
+ const ws=await call({action:'workspace',id:row.id});assert.equal(ws.selected.specialSuggestion.id,s.id);assert.equal(ws.selected.plan.conditions.allowStoreTransfers,false);
+ const other=await call({action:'new_report',storeId:1,report:'Synthetic separate incident for isolation test.'});
+ assert.equal((await handler(event({action:'adopt_suggestion',id:other.id,suggestionId:s.id,candidateId:s.candidateId}))).statusCode,400);
+ const next=await call({action:'adopt_suggestion',id:row.id,suggestionId:s.id,candidateId:s.candidateId});
+ assert.notEqual(next.plan.id,row.plan.id);assert.equal(next.plan.status,'proposed');assert.equal(next.parentPlanId,row.plan.id);assert.equal(next.before.allocatedUnits,row.plan.allocatedUnits);assert.equal(next.plan.allocatedUnits,s.candidates[0].metrics.allocatedUnits);
+ const versions=await call({action:'workspace',id:row.id,planId:row.plan.id});assert.equal(versions.selectedVersion.plan.conditions.allowStoreTransfers,false);assert.equal(versions.selected.planCurrent,true);
+ assert.equal((await handler(event({action:'adopt_suggestion',id:row.id,suggestionId:s.id,candidateId:s.candidateId}))).statusCode,400);
+});
+test('changed plan or catalog prevents stale suggestion adoption',async()=>{
+ let row=await ai({action:'plan_incident',id:chicken.id,message:'Keep suppliers capped and transfers off.'});
+ let explored=await ai({action:'suggest_incident',id:row.id,planId:row.plan.id}),s=explored.specialSuggestion;
+ await ai({action:'plan_incident',id:row.id,message:'Keep suppliers capped and transfers off.'});
+ assert.equal((await handler(event({action:'adopt_suggestion',id:row.id,suggestionId:s.id,candidateId:s.candidateId}))).statusCode,400);
+ const ws=await call({action:'workspace',id:row.id});explored=await ai({action:'suggest_incident',id:row.id,planId:ws.selected.plan.id});s=explored.specialSuggestion;
+ await call({action:'update_stock',offerId:4,availableUnits:49,expectedVersion:ws.catalog.version,reference:'Synthetic stock update during comparison.'});
+ assert.equal((await handler(event({action:'adopt_suggestion',id:row.id,suggestionId:s.id,candidateId:s.candidateId}))).statusCode,400);
 });

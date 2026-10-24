@@ -91,3 +91,20 @@ Authenticated `POST /api/cases` with `{ "action": "expand_network", "expectedVer
 The synthetic integration chicken case `4843c636-e455-44ec-8fe3-62781b58bc57` needs 1,022 packs across 18 stores. With the expanded catalog, actual Bedrock inference produced a supplier-only plan using multiple safe sources. An operator instruction limiting A, B and D to 200 packs each resulted in 600 allocated / 422 unfilled (58.7%). Clicking **Enable transfers** invoked Bedrock, preserved those ceilings, and produced 600 supplier packs + 388 safe store packs = 988 / 1,022 (96.7%); 34 packs remained unfilled. Donors were stores #1, #4, #10, #16, #19 and #25. These are computed synthetic proposals, not fulfilled deliveries or a promise that every incident improves by the same amount.
 
 To repeat the visible change, select that case and click **Disable transfers**, wait for the saved plan, then click **Enable transfers**. The 200-pack ceilings must still be present. The 1/2/3 map phases show the recorded product network, restricted-lot paths and the proposed recovery respectively. Expand **Supplier capabilities** for the product-to-supplier matrix and **Store transfer allocation** for donor quantities. Scripts in `aws/scripts/test-expanded-network.mjs` provide the explicit migration and baseline acceptance steps; they intentionally modify only the named synthetic QA case.
+
+
+## Proactive AI Special Suggestion
+
+After a successful recovery plan run, the frontend starts a separate Bedrock job to explore alternatives. Exploration failure leaves the saved plan intact and offers a retry. Existing plans expose **Explore with AI**.
+
+1. Bedrock proposes up to three bounded alternatives (same-chain transfer permission, 15–180 minute transfer window, time/cost objective) using current conditions and verified donor surplus.
+2. The same allocation engine computes every alternative against the same catalog. Supplier stock ceilings, exclusions, traffic, safety, product, expiry and donor reserves cannot be changed by this proposal schema.
+3. Bedrock compares the calculated metrics and selects an alternative or none. The server accepts a recommendation only if supplied packs do not decrease and at least one of allocated packs, total modeled cost or last delivery improves. Higher cost or later delivery can accompany higher coverage; all metrics are shown.
+4. The suggestion is persisted separately by incident and tied to the exact base plan and catalog version. It does not change dashboard allocations.
+5. **Accept changes & create new version** explicitly authorizes the listed policy changes. The server rejects stale, reused or cross-incident suggestions, recomputes and saves a separate proposed plan with its original baseline and AI decision audit. The map and allocation table consume this same plan. Final demo approval is separate.
+
+This is bounded AI proposal and decision support, not unrestricted action discovery, a mathematical proof of optimality, predictive illness ML, physical dispatch, or shared-stock reservation across incidents.
+
+API actions: `suggest_incident` (async; id + planId) and `adopt_suggestion` (id + suggestionId + candidateId). Conditional DynamoDB writes protect the current catalog and incident during both saves.
+
+Live acceptance scenario: chicken demand 1,022 packs; suppliers A/B/D capped at 200 each; transfers off gives 600 packs (58.7%). Bedrock proposed enabling safe same-chain transfers and recommended the computed alternative: 988 packs (96.7%), 34 still unfilled, modeled cost $4,943 → $7,812, last delivery 547 → 569 minutes. These are synthetic planning results, not fulfilled deliveries. Other scenarios may yield no improving alternative.

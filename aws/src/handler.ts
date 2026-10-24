@@ -59,7 +59,7 @@ export async function handler(event:any){
    else if(path.startsWith('/api/jobs/')&&method==='GET'){
     const id=path.slice('/api/jobs/'.length),after=Number(event.queryStringParameters?.after||0);
     response=/^[\da-f-]{36}$/.test(id)&&Number.isSafeInteger(after)&&after>=0?await pollJob(id,after):json({error:'Invalid job'},400);
-   }else if(method==='POST'&&(path==='/api/agent'||path==='/api/cases'&&['analyze','analyze_incident','plan_incident'].includes(parsedBody?.action))){
+   }else if(method==='POST'&&(path==='/api/agent'||path==='/api/cases'&&['analyze','analyze_incident','plan_incident','suggest_incident'].includes(parsedBody?.action))){
     const schema=path==='/api/agent'?z.object({message:z.string().min(1).max(2000),scenario:scenarioSchema,caseId:z.string().uuid().optional(),source:z.string().min(1).max(8000)}):z.object({action:z.literal('analyze'),id:z.string().uuid()});
     const validated=(incidents.newIncidentActions.has(parsedBody?.action)?incidents.incidentRequest:schema).safeParse(parsedBody);response=validated.success?await startJob(path,JSON.stringify(validated.data)):json({error:'Invalid AI request'},400);
    }else response=await dispatch(path,method,body);

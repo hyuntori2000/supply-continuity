@@ -1,3 +1,4 @@
+import {explorationSchema,selectionSchema,calculateCandidates,selectedCandidate} from './incident-suggestions';
 import {expandNetwork} from './network-expansion';
 import {z} from 'zod';
 import {awsCall,dynamo,get,item,list,put,table} from './store';
@@ -10,12 +11,14 @@ export const incidentRequest=z.discriminatedUnion('action',[
  z.object({action:z.literal('new_report'),storeId:z.number().int().positive(),report:z.string().min(10).max(4000)}),
  z.object({action:z.literal('analyze_incident'),id}),
  z.object({action:z.literal('record_evidence'),id,kind:z.enum(['precautionary_hold','positive_test']),reference:z.string().min(10).max(500)}),
+ z.object({action:z.literal('suggest_incident'),id,planId:id}),
+ z.object({action:z.literal('adopt_suggestion'),id,suggestionId:id,candidateId:z.string().min(1).max(50)}),
  z.object({action:z.literal('plan_incident'),id,message:z.string().min(5).max(2000),basePlanId:id.optional()}),
  z.object({action:z.literal('decide_incident'),id,planId:id,decision:z.enum(['approved','rejected']),acknowledgeShortage:z.boolean(),note:z.string().min(3).max(500)}),
  z.object({action:z.literal('update_stock'),offerId:z.number().int().positive(),availableUnits:z.number().int().min(0).max(100000),expectedVersion:z.number().int().positive(),reference:z.string().min(10).max(500)}),
  z.object({action:z.literal('register_lot'),code:z.string().regex(/^[A-Z0-9][A-Z0-9-]{4,79}$/),productId:z.number().int().positive(),farmId:z.number().int().positive(),storeId:z.number().int().positive(),quantity:z.number().int().positive().max(100000),expiresOn:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),reference:z.string().min(10).max(500),expectedVersion:z.number().int().positive()}),
 ]);
-export const newIncidentActions=new Set(['expand_network','workspace','new_report','analyze_incident','record_evidence','plan_incident','decide_incident','update_stock','register_lot']);
+export const newIncidentActions=new Set(['suggest_incident','adopt_suggestion','expand_network','workspace','new_report','analyze_incident','record_evidence','plan_incident','decide_incident','update_stock','register_lot']);
 const planKind=(id:string)=>'INCIDENTPLAN#'+id;
 const snapshot=(row:any)=>({id:row.plan.id,incidentId:row.id,version:row.planVersion||0,parentPlanId:row.parentPlanId||null,created_at:row.plan.createdAt,plan:row.plan,impact:row.impact,before:row.before,planAudit:row.planAudit});
 const createSnapshot=(value:any)=>({Put:{TableName:table(),Item:item(planKind(value.incidentId),value.id,value),ConditionExpression:'attribute_not_exists(pk)'}});
@@ -43,6 +46,7 @@ export async function POST(req:Request){
    const rows=await list('INCIDENT',30);
    const selected=a.id?await incident(a.id):null;
    if(selected?.lotId){selected.impact=impactFor(c,selected.lotId);selected.planCurrent=selected.plan?planIsCurrent(c,selected.lotId,selected.plan):false;}
+   if(selected){selected.specialSuggestion=await get('SUGGESTION',selected.id);}
    const versions=selected?await list(planKind(selected.id),100):[];
    if(selected?.plan&&!versions.some((v:any)=>v.id===selected.plan.id))versions.push(snapshot(selected));
    versions.sort((a:any,b:any)=>b.version-a.version);
@@ -86,6 +90,30 @@ export async function POST(req:Request){
    const nextCatalog=safetyChanged?{...c,version:c.version+1,updatedAt:now(),lots:c.lots.map(l=>affected.has(l.id)?{...l,safety_status:l.safety_status==='recalled'?'recalled':'hold'}:l)}:c;
    const next={...addEvent(row,'evidence_reviewed',`${a.kind}: ${a.reference}. Demo hold only; no physical stop confirmation.`),status:'hold_confirmed',evidence:{kind:a.kind,reference:a.reference,recordedAt:now(),scope:'Operator-attested synthetic evidence; not externally verified'},impact:impactFor(nextCatalog,row.lotId),plan:null};
    await dynamo('TransactWriteItems',{TransactItems:[conditionPut('CATALOG','operations-v2',nextCatalog,c),conditionPut('INCIDENT',row.id,next,row)]});return Response.json(next);
+  }
+  if(a.action==='suggest_incident'){
+   if(!row.evidence||!row.plan||row.plan.id!==a.planId||!planIsCurrent(c,row.lotId,row.plan))throw new Error('Save a current recovery plan before exploring alternatives');
+   const base=planConditions.parse(row.plan.conditions);
+   const probe=planIncident(c,row.lotId,{...base,allowStoreTransfers:true});
+   const exploration=await bedrock('explore_recovery_alternatives','Proactively propose up to three distinct recovery alternatives based on the current shortage, objective and verified donor surplus. You may propose enabling same-chain store transfers, changing their driving limit within 15–180 minutes, or switching the time/cost objective. These are conditional suggestions needing operator consent, not permissions already granted. Preserve all supplier ceilings, exclusions, safety restrictions and traffic assumptions. Do not propose unavailable capabilities or stock increases. Prefer a useful transfer alternative when transfers are off and safe donor surplus exists. Return an empty list if no useful supported alternatives exist. Keep titles and rationale concise.',explorationSchema,{currentConditions:base,currentPlan:{requiredUnits:row.plan.requiredUnits,allocatedUnits:row.plan.allocatedUnits,cost:row.plan.cost,lastDeliveryMinutes:row.plan.lastDeliveryMinutes},donors:probe.transferSources.map(d=>({storeId:d.sourceStoreId,available:d.available,reserve:d.reserveUnits})),latestOperatorRequest:row.planAudit?.request});
+   const result=calculateCandidates(c,row.lotId,base,exploration.data);
+   const decision=await bedrock('select_recovery_alternative','Compare the computed alternatives and recommend one, or null if none merits a policy change. Only select a candidate with improves=true. Prioritize reducing unmet demand, then consider the current operator objective and explicit cost/time tradeoffs. Explain why the proposed change is worthwhile and what needs consent. Use supplied metrics only; state cost and time tradeoffs with exact before/after values. Do not call a cost increase slight, negligible, reasonable or justified: the operator decides affordability. Never promise deliveries or global optimality. The baseline remains active until operator adoption. Keep the reason and tradeoff concise.',selectionSchema,{currentConditions:base,...result});
+   const chosen=selectedCandidate(result,decision.data);
+   const suggestion={id:crypto.randomUUID(),incidentId:row.id,basePlanId:row.plan.id,catalogVersion:c.version,createdAt:now(),status:'offered',...result,...chosen.selection,model:decision.model,explorationAudit:exploration,selectionAudit:decision};
+   await dynamo('TransactWriteItems',{TransactItems:[conditionPut('CATALOG','operations-v2',c,c),conditionPut('INCIDENT',row.id,row,row),{Put:{TableName:table(),Item:item('SUGGESTION',row.id,suggestion)}}]});
+   return Response.json({...row,specialSuggestion:suggestion});
+  }
+  if(a.action==='adopt_suggestion'){
+   const suggestion=await get('SUGGESTION',row.id);
+   if(!suggestion||suggestion.id!==a.suggestionId||suggestion.status!=='offered'||suggestion.basePlanId!==row.plan?.id||suggestion.catalogVersion!==c.version||!planIsCurrent(c,row.lotId,row.plan))throw new Error('Suggestion is stale or already used. Explore alternatives again.');
+   const {candidate}=selectedCandidate(suggestion,{candidateId:a.candidateId,reason:suggestion.reason,tradeoff:suggestion.tradeoff});
+   if(!candidate||candidate.id!==suggestion.candidateId)throw new Error('Select the verified AI recommendation');
+   const calculated=planIncident(c,row.lotId,candidate.conditions);
+   if(JSON.stringify(calculated.conditions)!==JSON.stringify(candidate.conditions)||calculated.allocatedUnits!==candidate.metrics.allocatedUnits||calculated.cost!==candidate.metrics.cost||calculated.lastDeliveryMinutes!==candidate.metrics.lastDeliveryMinutes)throw new Error('Alternative changed; explore again');
+   const plan={...calculated,id:crypto.randomUUID(),status:'proposed',source:'amazon-bedrock',model:suggestion.model};
+   const next={...addEvent(row,'ai_suggestion_adopted',candidate.changes.join('; ')),status:'plan_proposed',planVersion:(row.planVersion||0)+1,parentPlanId:row.plan.id,impact:impactFor(c,row.lotId),before:row.plan,plan,planAudit:{request:'Operator accepted AI Special Suggestion: '+candidate.title,model:suggestion.model,suggestionId:suggestion.id,decision:suggestion,steps:['Bedrock proposes bounded alternatives','Engine computes each alternative','Bedrock compares verified results','Operator accepts the explicit policy changes','Revalidate stock and save a separate proposed version'],baselineNote:'Compared with the unchanged previous plan using the same catalog and replacement demand.'}};
+   const snapshots=[createSnapshot(snapshot(next))];if(!await get(planKind(row.id),row.plan.id))snapshots.push(createSnapshot(snapshot(row)));
+   await dynamo('TransactWriteItems',{TransactItems:[conditionPut('CATALOG','operations-v2',c,c),conditionPut('INCIDENT',row.id,next,row),conditionPut('SUGGESTION',row.id,{...suggestion,status:'adopted',adoptedPlanId:plan.id},suggestion),...snapshots]});return Response.json(next);
   }
   if(a.action==='plan_incident'){
    if(!row.evidence||!row.lotId)throw new Error('Human evidence review and a demo hold are required before recovery planning');
