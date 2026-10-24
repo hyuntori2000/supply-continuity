@@ -1,4 +1,4 @@
 import type {Scenario,RecoveryPlan} from './continuity';
-export const defaults:Scenario={closedFacilityIds:[],blockedSupplierIds:[],objective:'continuity',trafficMultiplier:1,enableStoreTransfers:false};
+export const defaults:Scenario={closedFacilityIds:[],blockedSupplierIds:[],objective:'continuity',trafficMultiplier:1,enableStoreTransfers:false,regionalTraffic:[],directDispatchSupplierIds:[],supplierCapacityLimits:[]};
 export const report='SYNTHETIC INCIDENT DEMO-E01. DEMO Romaine 1 kg. Raw lot DEMO-P1-RAW-A tested positive. Hold raw lot DEMO-P1-RAW-A and every descendant including DEMO-P1-BLEND-A. This is fictional demonstration evidence.';
 export function narrative(p:RecoveryPlan){return `${p.allocated.toLocaleString()} of ${p.required.toLocaleString()} kg allocated (${p.coverage}%). ${p.suppliers.filter(s=>s.addedKg).map(s=>`${s.city}: ${s.addedKg} kg (${s.addedKg/s.packKg} physical packs)`).join('; ')}. ${p.transferKg||0} kg from same-chain store transfers. ${p.unfilled} kg remain unfilled; ${p.lateKg} allocated kg arrive after the modeled deadline. Existing commitments remain reserved. This is a synthetic proposal, not a purchase or dispatch.`;}

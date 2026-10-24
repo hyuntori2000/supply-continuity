@@ -55,3 +55,13 @@ test('comparison snapshots do not change when a later run mutates its inputs',()
  assert.equal(c.after.scenario.enableStoreTransfers,true);
  assert.equal(c.tools[3].output.scenario.enableStoreTransfers,true);
 });
+test('regional delay, approved direct dispatch and stock ceilings appear as actual condition changes',()=>{
+ const updated=optimize({...defaults,closedFacilityIds:[5],regionalTraffic:[{region:'north_bay',multiplier:1.5,assumed:true}],directDispatchSupplierIds:[4],supplierCapacityLimits:[{supplierId:4,availableKg:80}]});
+ const rows=constraintChanges(outage,updated);
+ assert.deepEqual(rows.map(r=>r.label),['Regional traffic','Approved direct dispatch','Spare-stock limits']);
+ assert.match(rows[0].after,/North Bay ×1.5 \(assumed\)/);
+ assert.match(rows[1].after,/D · Gilroy/);
+ assert.match(rows[2].after,/80 kg/);
+ assert.ok(captureComparison(outage,'Apply changes',final(updated),evidence(updated)));
+ assert.equal(captureComparison(outage,'Apply changes',final(updated),evidence(outage)),null,'Applied tools must match new operational fields, not only legacy settings');
+});

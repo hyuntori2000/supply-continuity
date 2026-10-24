@@ -1,0 +1,215 @@
+{
+  "status": "passed",
+  "testedAt": "2026-10-24T09:03:07.152Z",
+  "model": "amazon.nova-pro-v1:0",
+  "request": "there is a traffic in upper bay area and we found out only supply a has problem therefore we can directly get some suppply from d",
+  "checks": [
+    "Informal upper-Bay request maps to disclosed North Bay 1.5x assumption",
+    "D direct lane bypasses only Oakland handling",
+    "A recall and B dependency remain blocked",
+    "Follow-up clears regional traffic and reduces D spare stock to 80 kg",
+    "Unsupported highway and milk constraints are surfaced"
+  ],
+  "runs": [
+    {
+      "scenario": {
+        "closedFacilityIds": [
+          5
+        ],
+        "blockedSupplierIds": [
+          1
+        ],
+        "objective": "continuity",
+        "trafficMultiplier": 1,
+        "enableStoreTransfers": false,
+        "regionalTraffic": [
+          {
+            "region": "north_bay",
+            "multiplier": 1.5,
+            "assumed": true
+          }
+        ],
+        "directDispatchSupplierIds": [
+          4
+        ],
+        "supplierCapacityLimits": []
+      },
+      "interpretation": {
+        "summary": "Updated scenario with traffic multiplier for North Bay, blocked supplier A, and direct dispatch from supplier D.",
+        "assumptions": [
+          "Traffic multiplier for North Bay is set to 1.5 as a planning assumption.",
+          "Supplier A is blocked due to the reported problem.",
+          "Direct dispatch from supplier D is enabled using the approved mock lane."
+        ],
+        "unappliedRequests": []
+      },
+      "allocated": 931,
+      "unfilled": 660,
+      "lateKg": 228,
+      "cost": 5561,
+      "suppliers": [
+        {
+          "id": "A",
+          "kg": 0,
+          "eligible": false,
+          "dispatchMode": "standard"
+        },
+        {
+          "id": "B",
+          "kg": 0,
+          "eligible": false,
+          "dispatchMode": "standard"
+        },
+        {
+          "id": "F",
+          "kg": 611,
+          "eligible": true,
+          "dispatchMode": "standard"
+        },
+        {
+          "id": "D",
+          "kg": 320,
+          "eligible": true,
+          "dispatchMode": "direct"
+        },
+        {
+          "id": "C",
+          "kg": 0,
+          "eligible": false,
+          "dispatchMode": "standard"
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "closedFacilityIds": [
+          5
+        ],
+        "blockedSupplierIds": [
+          1
+        ],
+        "objective": "continuity",
+        "trafficMultiplier": 1,
+        "enableStoreTransfers": false,
+        "regionalTraffic": [],
+        "directDispatchSupplierIds": [
+          4
+        ],
+        "supplierCapacityLimits": [
+          {
+            "supplierId": 4,
+            "availableKg": 80
+          }
+        ]
+      },
+      "interpretation": {
+        "summary": "Applied supported scenario settings.",
+        "assumptions": [],
+        "unappliedRequests": []
+      },
+      "allocated": 691,
+      "unfilled": 900,
+      "lateKg": 318,
+      "cost": 4505,
+      "suppliers": [
+        {
+          "id": "A",
+          "kg": 0,
+          "eligible": false,
+          "dispatchMode": "standard"
+        },
+        {
+          "id": "B",
+          "kg": 0,
+          "eligible": false,
+          "dispatchMode": "standard"
+        },
+        {
+          "id": "F",
+          "kg": 611,
+          "eligible": true,
+          "dispatchMode": "standard"
+        },
+        {
+          "id": "D",
+          "kg": 80,
+          "eligible": true,
+          "dispatchMode": "direct"
+        },
+        {
+          "id": "C",
+          "kg": 0,
+          "eligible": false,
+          "dispatchMode": "standard"
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "closedFacilityIds": [
+          5
+        ],
+        "blockedSupplierIds": [
+          1
+        ],
+        "objective": "continuity",
+        "trafficMultiplier": 1,
+        "enableStoreTransfers": false,
+        "regionalTraffic": [],
+        "directDispatchSupplierIds": [
+          4
+        ],
+        "supplierCapacityLimits": [
+          {
+            "supplierId": 4,
+            "availableKg": 80
+          }
+        ]
+      },
+      "interpretation": {
+        "summary": "The scenario is set to avoid Highway 101 and change Store A's minimum inventory to 200 units of milk. However, these requests cannot be applied as they are not supported by the current tools and capabilities. The existing supported scenario settings remain unchanged.",
+        "assumptions": [],
+        "unappliedRequests": [
+          "Avoid Highway 101",
+          "Change Store A minimum inventory to 200 units of milk"
+        ]
+      },
+      "allocated": 691,
+      "unfilled": 900,
+      "lateKg": 318,
+      "cost": 4505,
+      "suppliers": [
+        {
+          "id": "A",
+          "kg": 0,
+          "eligible": false,
+          "dispatchMode": "standard"
+        },
+        {
+          "id": "B",
+          "kg": 0,
+          "eligible": false,
+          "dispatchMode": "standard"
+        },
+        {
+          "id": "F",
+          "kg": 611,
+          "eligible": true,
+          "dispatchMode": "standard"
+        },
+        {
+          "id": "D",
+          "kg": 80,
+          "eligible": true,
+          "dispatchMode": "direct"
+        },
+        {
+          "id": "C",
+          "kg": 0,
+          "eligible": false,
+          "dispatchMode": "standard"
+        }
+      ]
+    }
+  ]
+}

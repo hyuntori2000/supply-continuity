@@ -64,3 +64,18 @@ Use the live AWS URL, not local simulation. Start with **Recall only** under **S
 The team confirmed that Kiro was used; add one truthful sentence naming the work performed with Kiro (for example, only name backend implementation or testing if that is what actually happened). This audit did not independently inspect Kiro history. Add the organizer-approved team contact and verify submission access. The five-minute video itself has not been recorded or reviewed by this audit.
 
 The application aggregates several chains. Explain Maya's regional coordination remit and any chain-specific decision scope; do not imply one retailer can authorize another retailer's inventory. The current views are demo presentations, not tenant authorization. Neither real user research nor real incident outcomes were verified.
+
+
+## Operational-language extension
+
+The agent now supports region-specific driving-time penalties, one catalog-approved synthetic direct-dispatch lane for D, and supplier spare-stock ceilings. It also reports interpreted assumptions and unapplied requests in the comparison panel.
+
+Example: “There is traffic in the upper Bay Area. Only supplier A has a problem, and we can get supply directly from D.” With Oakland already closed, the intended interpretation is: retain the warehouse closure, block A, assume North Bay travel ×1.5 if no delay was specified, and enable D's approved mock direct lane. B remains dependent on the closed warehouse. A's recalled lot and descendants remain blocked. Product fit is evaluated independently of operational availability so an old outage cannot incorrectly make D's romaine an incompatible product.
+
+The direct lane is a demonstration assumption: D can use its existing 320 kg spare stock with 45-minute preparation and $0.25/kg additional handling. It uses the existing direct-road distance matrix; it does not query a carrier or recompute a road detour. Regional traffic applies when a trip origin or destination is in the selected region, using the maximum applicable multiplier rather than compounding penalties. It does not detect journeys that merely pass through a region.
+
+Follow-up: “North Bay traffic has cleared. D has only 80 kg of uncommitted stock remaining. Keep Oakland closed and preserve direct dispatch.” The agent can clear that regional penalty and cap D at 80 kg. A larger reported stock quantity can never increase the catalog's available inventory.
+
+Unsupported requests such as avoiding Highway 101 specifically, an unknown region, arbitrary milk inventory requirements or external verification must be disclosed under **Not applied** rather than presented as implemented. These are user-supplied what-if conditions, not verified real-time incident facts.
+
+Validation: the original informal request was tested against real Bedrock after separating product-fit assessment from initial route eligibility. An initial attempt incorrectly treated D’s warehouse outage as product incompatibility; that run was not counted as success. The subsequent acceptance sequence passed: D added 320 kg (611 → 931 kg total; 980 → 660 kg unfilled), a follow-up capped D at 80 kg, and unsupported highway/milk constraints were returned as unapplied. Full sanitized results: `verification/operational-language.json`. These observations do not guarantee every paraphrase will be interpreted correctly.

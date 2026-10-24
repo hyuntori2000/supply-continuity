@@ -8,6 +8,8 @@ const duration=(n:number|null)=>n===null?'Unresolved':`${Math.floor(n/60)}h ${Ma
 
 export default function PlanComparison({comparison}:{comparison:Comparison}) {
   const {before,after}=comparison,changes=constraintChanges(before,after),sources=sourceChanges(before,after);
+  const interpretation=comparison.tools.find(t=>t.name==='set_scenario')?.output?.interpretation;
+  const assumptions=[...(interpretation?.assumptions||[]),...(after.operationalNotes||[])];
   const metrics=[
     {label:'Replacement need',a:kg(before.required),b:kg(after.required)},
     {label:'Supplier allocation',a:kg(before.supplierKg),b:kg(after.supplierKg)},
@@ -25,6 +27,9 @@ export default function PlanComparison({comparison}:{comparison:Comparison}) {
       <blockquote className="comparison-request"><span>YOUR REQUEST</span>{comparison.request}</blockquote>
       <div className="comparison-grid">
         <div className="comparison-conditions"><h3>Conditions applied</h3>{changes.length?<ul>{changes.map(row=><li key={row.label}><strong>{row.label}</strong><div><span>{row.before}</span><ArrowRight size={14}/><b>{row.after}</b></div></li>)}</ul>:<p className="comparison-note">No supported scenario conditions changed. Bedrock reviewed product fit and recalculated the plan.</p>}
+          {interpretation?.summary&&!interpretation?.unappliedRequests?.length&&<p className="comparison-note">{interpretation.summary}</p>}
+          {!!assumptions.length&&<details className="operational-details" open><summary>Planning assumptions</summary><ul>{assumptions.map((text:string,i:number)=><li key={i}>{text}</li>)}</ul></details>}
+          {!!interpretation?.unappliedRequests?.length&&<div className="comparison-caveat" role="status"><strong>Not applied — needs clarification or more data</strong><ul>{interpretation.unappliedRequests.map((text:string,i:number)=><li key={i}>{text}</li>)}</ul></div>}
           <p className="comparison-guardrails"><Check size={15}/> Recalled-lot exclusions, capacity limits and donor stock protection remain enforced by the engine.</p>
           <details className="comparison-evidence"><summary>View verified tool evidence <ChevronDown size={14}/></summary><p>Scenario changes come from the completed set_scenario tool. Quantities come from the allocation engine.</p>{comparison.tools.map(tool=><details key={tool.name}><summary><Check size={12}/>{tool.name.replaceAll('_',' ')}</summary><pre>{JSON.stringify(tool.output,null,2)}</pre></details>)}<small>Model: {comparison.model} · Plan: {comparison.planId.slice(0,8)}</small></details>
         </div>
