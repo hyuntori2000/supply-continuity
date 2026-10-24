@@ -2,6 +2,10 @@
 
 The reference backend separates Bedrock product compatibility from Python supplier ranking and has a PostgreSQL schema. This app implements the same separation and extends the decision to multi-supplier allocation and shared facility outages. The Python backend and its RDS database are not connected automatically.
 
+## Independent frontend
+
+`frontend/` builds a static React/Vite client with no Cloudflare/D1 runtime. See [deployment instructions](../frontend/README.md). Its API mode uses this contract and never falls back to simulated data; backend endpoint/schema mapping and CORS are required before a live AWS integration.
+
 ## Stable frontend contracts
 
 | Endpoint | Input / output |

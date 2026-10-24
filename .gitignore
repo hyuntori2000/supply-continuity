@@ -46,3 +46,11 @@ yarn-error.log*
 
 !.env.example
 .npmrc
+
+# Independent AWS frontend
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.env*
+!/frontend/.env.example
+/frontend/*.zip
+/frontend/.test-build/

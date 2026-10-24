@@ -6,7 +6,20 @@ A working food-continuity demo for a **Bay Area regional grocery replenishment m
 
 > Real public store locations and modeled road distances. Synthetic suppliers, cases, lots, demand, capacities, dependencies, deadlines and approvals. No real outbreak is alleged. A report is not a diagnosis or proof of contamination.
 
-## Run locally
+## Deploy the independent frontend on AWS
+
+Use [`frontend/`](frontend/) for the standalone React/Vite app. It has its own lockfile, API configuration, tests and static build. [`amplify.yml`](amplify.yml) deploys that subdirectory through AWS Amplify; the original root app below still targets Sites/Cloudflare. See the [frontend deployment and API guide](frontend/README.md).
+
+```sh
+cd frontend
+npm ci
+npm run build
+# Deploy the contents of frontend/dist (relative to repository root).
+```
+
+The default frontend build is an explicitly labeled local simulation. Set `VITE_DATA_MODE=api` and `VITE_API_BASE_URL` to a compatible backend and rebuild for real Bedrock/report/approval features. This change prepares the frontend; it does not migrate the backend or claim an AWS deployment has occurred.
+
+## Run the original full-stack prototype locally
 
 Requires Node.js 22.13+ and npm. Use the latest Node 22 patch release.
 
@@ -55,7 +68,7 @@ React/Vinext + Leaflet → server endpoints → Amazon Bedrock Converse → dete
 
 The hosted preview uses Sites/Cloudflare Workers and D1, **not an AWS-hosted web server or live RDS integration**. The team's PostgreSQL/RDS project can reuse the API and schema mapping in [the integration guide](docs/TEAM_INTEGRATION.md). No new AWS infrastructure is required by this demo. Workshop/team Kiro usage must be described truthfully in the submission; this repository does not establish that requirement by itself.
 
-The Retailer/Regulator toggle is a presentation view, not tenant authorization. The hosted site and GitHub repository are private. Only add team access deliberately. UI notices are internal; no email, SMS, purchase or physical shipment integrations are connected.
+The Retailer/Regulator toggle is a presentation view, not tenant authorization. The original hosted site is private; the GitHub repository is public. Site access is separate from repository access. UI notices are internal; no email, SMS, purchase or physical shipment integrations are connected.
 
 Supplier-facility edges are operational dependencies, not routed waypoints. OSRM routes are direct-road baselines from synthetic supplier coordinates to real stores. There is no live traffic or vehicle routing. ETA may be optimistic if real fulfillment requires intermediate stops. Costs and deadlines are illustrative. Replenishment demand is modeled replacement for held stock, not a measured stockout. Initial maps use catalog rules until an actual Bedrock investigation runs.
 
@@ -90,8 +103,8 @@ See [validation evidence](docs/VALIDATION.md). Test fixtures and all demonstrati
 
 ## Team sharing
 
-Repository: https://github.com/hyuntori2000/supply-continuity (private).
-The owner adds teammates under **Settings → Collaborators**. Each teammate supplies their own AWS environment locally. Credentials and runtime cases are excluded from Git. The `.openai/hosting.json` identifies the existing private demo; do not publish another team member's changes to that Site without coordination.
+Repository: https://github.com/hyuntori2000/supply-continuity (public).
+Anyone can read or clone; the owner adds teammates under **Settings → Collaborators** for write access. Each teammate supplies their own AWS environment locally. Credentials and runtime cases are excluded from Git. The `.openai/hosting.json` identifies the existing private demo; do not publish another team member's changes to that Site without coordination.
 
 ## Provenance
 

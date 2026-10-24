@@ -1,0 +1,974 @@
+[
+  {
+    "supplierId": 1,
+    "storeId": 1,
+    "distanceKm": 83.54,
+    "drivingMinutes": 72.08
+  },
+  {
+    "supplierId": 1,
+    "storeId": 2,
+    "distanceKm": 95.17,
+    "drivingMinutes": 84.64
+  },
+  {
+    "supplierId": 1,
+    "storeId": 3,
+    "distanceKm": 130.19,
+    "drivingMinutes": 109.9
+  },
+  {
+    "supplierId": 1,
+    "storeId": 4,
+    "distanceKm": 150.5,
+    "drivingMinutes": 124.18
+  },
+  {
+    "supplierId": 1,
+    "storeId": 5,
+    "distanceKm": 95.67,
+    "drivingMinutes": 77.51
+  },
+  {
+    "supplierId": 1,
+    "storeId": 6,
+    "distanceKm": 98.95,
+    "drivingMinutes": 86.13
+  },
+  {
+    "supplierId": 1,
+    "storeId": 7,
+    "distanceKm": 5.43,
+    "drivingMinutes": 9.24
+  },
+  {
+    "supplierId": 1,
+    "storeId": 8,
+    "distanceKm": 106.57,
+    "drivingMinutes": 85.66
+  },
+  {
+    "supplierId": 1,
+    "storeId": 9,
+    "distanceKm": 122.43,
+    "drivingMinutes": 96.51
+  },
+  {
+    "supplierId": 1,
+    "storeId": 10,
+    "distanceKm": 146.87,
+    "drivingMinutes": 115.29
+  },
+  {
+    "supplierId": 1,
+    "storeId": 11,
+    "distanceKm": 143.78,
+    "drivingMinutes": 120.67
+  },
+  {
+    "supplierId": 1,
+    "storeId": 12,
+    "distanceKm": 81.53,
+    "drivingMinutes": 67.42
+  },
+  {
+    "supplierId": 1,
+    "storeId": 13,
+    "distanceKm": 88.0,
+    "drivingMinutes": 76.93
+  },
+  {
+    "supplierId": 1,
+    "storeId": 14,
+    "distanceKm": 65.33,
+    "drivingMinutes": 60.78
+  },
+  {
+    "supplierId": 1,
+    "storeId": 15,
+    "distanceKm": 91.98,
+    "drivingMinutes": 74.05
+  },
+  {
+    "supplierId": 1,
+    "storeId": 16,
+    "distanceKm": 84.11,
+    "drivingMinutes": 71.24
+  },
+  {
+    "supplierId": 1,
+    "storeId": 17,
+    "distanceKm": 57.96,
+    "drivingMinutes": 46.24
+  },
+  {
+    "supplierId": 1,
+    "storeId": 18,
+    "distanceKm": 65.32,
+    "drivingMinutes": 59.48
+  },
+  {
+    "supplierId": 1,
+    "storeId": 19,
+    "distanceKm": 158.76,
+    "drivingMinutes": 124.02
+  },
+  {
+    "supplierId": 1,
+    "storeId": 20,
+    "distanceKm": 82.46,
+    "drivingMinutes": 66.24
+  },
+  {
+    "supplierId": 1,
+    "storeId": 21,
+    "distanceKm": 101.59,
+    "drivingMinutes": 87.19
+  },
+  {
+    "supplierId": 1,
+    "storeId": 22,
+    "distanceKm": 86.77,
+    "drivingMinutes": 76.47
+  },
+  {
+    "supplierId": 1,
+    "storeId": 23,
+    "distanceKm": 92.38,
+    "drivingMinutes": 72.9
+  },
+  {
+    "supplierId": 1,
+    "storeId": 24,
+    "distanceKm": 160.64,
+    "drivingMinutes": 124.15
+  },
+  {
+    "supplierId": 1,
+    "storeId": 25,
+    "distanceKm": 90.73,
+    "drivingMinutes": 79.54
+  },
+  {
+    "supplierId": 1,
+    "storeId": 26,
+    "distanceKm": 92.21,
+    "drivingMinutes": 73.78
+  },
+  {
+    "supplierId": 1,
+    "storeId": 27,
+    "distanceKm": 59.8,
+    "drivingMinutes": 48.49
+  },
+  {
+    "supplierId": 2,
+    "storeId": 1,
+    "distanceKm": 82.63,
+    "drivingMinutes": 70.67
+  },
+  {
+    "supplierId": 2,
+    "storeId": 2,
+    "distanceKm": 93.52,
+    "drivingMinutes": 74.62
+  },
+  {
+    "supplierId": 2,
+    "storeId": 3,
+    "distanceKm": 120.38,
+    "drivingMinutes": 95.88
+  },
+  {
+    "supplierId": 2,
+    "storeId": 4,
+    "distanceKm": 134.27,
+    "drivingMinutes": 104.95
+  },
+  {
+    "supplierId": 2,
+    "storeId": 5,
+    "distanceKm": 73.41,
+    "drivingMinutes": 58.95
+  },
+  {
+    "supplierId": 2,
+    "storeId": 6,
+    "distanceKm": 58.35,
+    "drivingMinutes": 49.14
+  },
+  {
+    "supplierId": 2,
+    "storeId": 7,
+    "distanceKm": 62.83,
+    "drivingMinutes": 55.31
+  },
+  {
+    "supplierId": 2,
+    "storeId": 8,
+    "distanceKm": 84.31,
+    "drivingMinutes": 67.1
+  },
+  {
+    "supplierId": 2,
+    "storeId": 9,
+    "distanceKm": 100.17,
+    "drivingMinutes": 77.94
+  },
+  {
+    "supplierId": 2,
+    "storeId": 10,
+    "distanceKm": 120.91,
+    "drivingMinutes": 95.45
+  },
+  {
+    "supplierId": 2,
+    "storeId": 11,
+    "distanceKm": 130.6,
+    "drivingMinutes": 105.05
+  },
+  {
+    "supplierId": 2,
+    "storeId": 12,
+    "distanceKm": 48.46,
+    "drivingMinutes": 39.28
+  },
+  {
+    "supplierId": 2,
+    "storeId": 13,
+    "distanceKm": 35.92,
+    "drivingMinutes": 29.6
+  },
+  {
+    "supplierId": 2,
+    "storeId": 14,
+    "distanceKm": 2.97,
+    "drivingMinutes": 4.83
+  },
+  {
+    "supplierId": 2,
+    "storeId": 15,
+    "distanceKm": 69.72,
+    "drivingMinutes": 55.48
+  },
+  {
+    "supplierId": 2,
+    "storeId": 16,
+    "distanceKm": 79.05,
+    "drivingMinutes": 66.56
+  },
+  {
+    "supplierId": 2,
+    "storeId": 17,
+    "distanceKm": 56.6,
+    "drivingMinutes": 47.73
+  },
+  {
+    "supplierId": 2,
+    "storeId": 18,
+    "distanceKm": 3.3,
+    "drivingMinutes": 4.48
+  },
+  {
+    "supplierId": 2,
+    "storeId": 19,
+    "distanceKm": 132.8,
+    "drivingMinutes": 104.19
+  },
+  {
+    "supplierId": 2,
+    "storeId": 20,
+    "distanceKm": 60.21,
+    "drivingMinutes": 47.68
+  },
+  {
+    "supplierId": 2,
+    "storeId": 21,
+    "distanceKm": 60.99,
+    "drivingMinutes": 50.21
+  },
+  {
+    "supplierId": 2,
+    "storeId": 22,
+    "distanceKm": 76.86,
+    "drivingMinutes": 62.55
+  },
+  {
+    "supplierId": 2,
+    "storeId": 23,
+    "distanceKm": 70.12,
+    "drivingMinutes": 54.34
+  },
+  {
+    "supplierId": 2,
+    "storeId": 24,
+    "distanceKm": 134.68,
+    "drivingMinutes": 104.32
+  },
+  {
+    "supplierId": 2,
+    "storeId": 25,
+    "distanceKm": 80.92,
+    "drivingMinutes": 65.52
+  },
+  {
+    "supplierId": 2,
+    "storeId": 26,
+    "distanceKm": 69.95,
+    "drivingMinutes": 55.22
+  },
+  {
+    "supplierId": 2,
+    "storeId": 27,
+    "distanceKm": 58.44,
+    "drivingMinutes": 49.98
+  },
+  {
+    "supplierId": 3,
+    "storeId": 1,
+    "distanceKm": 91.21,
+    "drivingMinutes": 78.66
+  },
+  {
+    "supplierId": 3,
+    "storeId": 2,
+    "distanceKm": 102.1,
+    "drivingMinutes": 82.61
+  },
+  {
+    "supplierId": 3,
+    "storeId": 3,
+    "distanceKm": 103.55,
+    "drivingMinutes": 88.18
+  },
+  {
+    "supplierId": 3,
+    "storeId": 4,
+    "distanceKm": 91.23,
+    "drivingMinutes": 80.44
+  },
+  {
+    "supplierId": 3,
+    "storeId": 5,
+    "distanceKm": 77.45,
+    "drivingMinutes": 62.46
+  },
+  {
+    "supplierId": 3,
+    "storeId": 6,
+    "distanceKm": 49.51,
+    "drivingMinutes": 40.73
+  },
+  {
+    "supplierId": 3,
+    "storeId": 7,
+    "distanceKm": 128.58,
+    "drivingMinutes": 105.79
+  },
+  {
+    "supplierId": 3,
+    "storeId": 8,
+    "distanceKm": 74.13,
+    "drivingMinutes": 63.36
+  },
+  {
+    "supplierId": 3,
+    "storeId": 9,
+    "distanceKm": 74.87,
+    "drivingMinutes": 66.35
+  },
+  {
+    "supplierId": 3,
+    "storeId": 10,
+    "distanceKm": 77.88,
+    "drivingMinutes": 70.95
+  },
+  {
+    "supplierId": 3,
+    "storeId": 11,
+    "distanceKm": 96.9,
+    "drivingMinutes": 86.31
+  },
+  {
+    "supplierId": 3,
+    "storeId": 12,
+    "distanceKm": 67.62,
+    "drivingMinutes": 53.78
+  },
+  {
+    "supplierId": 3,
+    "storeId": 13,
+    "distanceKm": 81.07,
+    "drivingMinutes": 64.28
+  },
+  {
+    "supplierId": 3,
+    "storeId": 14,
+    "distanceKm": 87.2,
+    "drivingMinutes": 70.66
+  },
+  {
+    "supplierId": 3,
+    "storeId": 15,
+    "distanceKm": 73.36,
+    "drivingMinutes": 59.21
+  },
+  {
+    "supplierId": 3,
+    "storeId": 16,
+    "distanceKm": 87.64,
+    "drivingMinutes": 74.55
+  },
+  {
+    "supplierId": 3,
+    "storeId": 17,
+    "distanceKm": 90.55,
+    "drivingMinutes": 73.76
+  },
+  {
+    "supplierId": 3,
+    "storeId": 18,
+    "distanceKm": 90.81,
+    "drivingMinutes": 71.42
+  },
+  {
+    "supplierId": 3,
+    "storeId": 19,
+    "distanceKm": 89.77,
+    "drivingMinutes": 79.69
+  },
+  {
+    "supplierId": 3,
+    "storeId": 20,
+    "distanceKm": 79.36,
+    "drivingMinutes": 62.18
+  },
+  {
+    "supplierId": 3,
+    "storeId": 21,
+    "distanceKm": 52.15,
+    "drivingMinutes": 41.79
+  },
+  {
+    "supplierId": 3,
+    "storeId": 22,
+    "distanceKm": 85.44,
+    "drivingMinutes": 70.54
+  },
+  {
+    "supplierId": 3,
+    "storeId": 23,
+    "distanceKm": 74.12,
+    "drivingMinutes": 59.03
+  },
+  {
+    "supplierId": 3,
+    "storeId": 24,
+    "distanceKm": 91.65,
+    "drivingMinutes": 79.82
+  },
+  {
+    "supplierId": 3,
+    "storeId": 25,
+    "distanceKm": 89.51,
+    "drivingMinutes": 73.51
+  },
+  {
+    "supplierId": 3,
+    "storeId": 26,
+    "distanceKm": 74.1,
+    "drivingMinutes": 58.29
+  },
+  {
+    "supplierId": 3,
+    "storeId": 27,
+    "distanceKm": 92.61,
+    "drivingMinutes": 76.45
+  },
+  {
+    "supplierId": 4,
+    "storeId": 1,
+    "distanceKm": 128.49,
+    "drivingMinutes": 101.09
+  },
+  {
+    "supplierId": 4,
+    "storeId": 2,
+    "distanceKm": 115.45,
+    "drivingMinutes": 88.61
+  },
+  {
+    "supplierId": 4,
+    "storeId": 3,
+    "distanceKm": 85.57,
+    "drivingMinutes": 66.32
+  },
+  {
+    "supplierId": 4,
+    "storeId": 4,
+    "distanceKm": 66.32,
+    "drivingMinutes": 52.04
+  },
+  {
+    "supplierId": 4,
+    "storeId": 5,
+    "distanceKm": 114.62,
+    "drivingMinutes": 87.17
+  },
+  {
+    "supplierId": 4,
+    "storeId": 6,
+    "distanceKm": 120.54,
+    "drivingMinutes": 90.79
+  },
+  {
+    "supplierId": 4,
+    "storeId": 7,
+    "distanceKm": 204.45,
+    "drivingMinutes": 154.6
+  },
+  {
+    "supplierId": 4,
+    "storeId": 8,
+    "distanceKm": 99.58,
+    "drivingMinutes": 75.88
+  },
+  {
+    "supplierId": 4,
+    "storeId": 9,
+    "distanceKm": 83.83,
+    "drivingMinutes": 64.05
+  },
+  {
+    "supplierId": 4,
+    "storeId": 10,
+    "distanceKm": 60.29,
+    "drivingMinutes": 48.01
+  },
+  {
+    "supplierId": 4,
+    "storeId": 11,
+    "distanceKm": 72.27,
+    "drivingMinutes": 57.93
+  },
+  {
+    "supplierId": 4,
+    "storeId": 12,
+    "distanceKm": 136.8,
+    "drivingMinutes": 103.78
+  },
+  {
+    "supplierId": 4,
+    "storeId": 13,
+    "distanceKm": 171.46,
+    "drivingMinutes": 128.55
+  },
+  {
+    "supplierId": 4,
+    "storeId": 14,
+    "distanceKm": 177.59,
+    "drivingMinutes": 134.93
+  },
+  {
+    "supplierId": 4,
+    "storeId": 15,
+    "distanceKm": 113.5,
+    "drivingMinutes": 87.18
+  },
+  {
+    "supplierId": 4,
+    "storeId": 16,
+    "distanceKm": 127.21,
+    "drivingMinutes": 98.61
+  },
+  {
+    "supplierId": 4,
+    "storeId": 17,
+    "distanceKm": 147.65,
+    "drivingMinutes": 112.97
+  },
+  {
+    "supplierId": 4,
+    "storeId": 18,
+    "distanceKm": 181.2,
+    "drivingMinutes": 135.69
+  },
+  {
+    "supplierId": 4,
+    "storeId": 19,
+    "distanceKm": 50.55,
+    "drivingMinutes": 40.05
+  },
+  {
+    "supplierId": 4,
+    "storeId": 20,
+    "distanceKm": 124.27,
+    "drivingMinutes": 94.29
+  },
+  {
+    "supplierId": 4,
+    "storeId": 21,
+    "distanceKm": 118.43,
+    "drivingMinutes": 88.96
+  },
+  {
+    "supplierId": 4,
+    "storeId": 22,
+    "distanceKm": 126.76,
+    "drivingMinutes": 96.29
+  },
+  {
+    "supplierId": 4,
+    "storeId": 23,
+    "distanceKm": 113.77,
+    "drivingMinutes": 86.31
+  },
+  {
+    "supplierId": 4,
+    "storeId": 24,
+    "distanceKm": 55.22,
+    "drivingMinutes": 45.14
+  },
+  {
+    "supplierId": 4,
+    "storeId": 25,
+    "distanceKm": 120.32,
+    "drivingMinutes": 90.28
+  },
+  {
+    "supplierId": 4,
+    "storeId": 26,
+    "distanceKm": 113.05,
+    "drivingMinutes": 84.77
+  },
+  {
+    "supplierId": 4,
+    "storeId": 27,
+    "distanceKm": 149.72,
+    "drivingMinutes": 115.65
+  },
+  {
+    "supplierId": 5,
+    "storeId": 1,
+    "distanceKm": 114.37,
+    "drivingMinutes": 91.15
+  },
+  {
+    "supplierId": 5,
+    "storeId": 2,
+    "distanceKm": 101.34,
+    "drivingMinutes": 78.68
+  },
+  {
+    "supplierId": 5,
+    "storeId": 3,
+    "distanceKm": 71.46,
+    "drivingMinutes": 56.39
+  },
+  {
+    "supplierId": 5,
+    "storeId": 4,
+    "distanceKm": 52.2,
+    "drivingMinutes": 42.11
+  },
+  {
+    "supplierId": 5,
+    "storeId": 5,
+    "distanceKm": 100.5,
+    "drivingMinutes": 77.24
+  },
+  {
+    "supplierId": 5,
+    "storeId": 6,
+    "distanceKm": 106.42,
+    "drivingMinutes": 80.86
+  },
+  {
+    "supplierId": 5,
+    "storeId": 7,
+    "distanceKm": 190.33,
+    "drivingMinutes": 144.67
+  },
+  {
+    "supplierId": 5,
+    "storeId": 8,
+    "distanceKm": 85.46,
+    "drivingMinutes": 65.95
+  },
+  {
+    "supplierId": 5,
+    "storeId": 9,
+    "distanceKm": 69.71,
+    "drivingMinutes": 54.12
+  },
+  {
+    "supplierId": 5,
+    "storeId": 10,
+    "distanceKm": 46.18,
+    "drivingMinutes": 38.08
+  },
+  {
+    "supplierId": 5,
+    "storeId": 11,
+    "distanceKm": 58.15,
+    "drivingMinutes": 48.0
+  },
+  {
+    "supplierId": 5,
+    "storeId": 12,
+    "distanceKm": 122.69,
+    "drivingMinutes": 93.85
+  },
+  {
+    "supplierId": 5,
+    "storeId": 13,
+    "distanceKm": 157.34,
+    "drivingMinutes": 118.62
+  },
+  {
+    "supplierId": 5,
+    "storeId": 14,
+    "distanceKm": 163.47,
+    "drivingMinutes": 124.99
+  },
+  {
+    "supplierId": 5,
+    "storeId": 15,
+    "distanceKm": 99.38,
+    "drivingMinutes": 77.25
+  },
+  {
+    "supplierId": 5,
+    "storeId": 16,
+    "distanceKm": 113.09,
+    "drivingMinutes": 88.67
+  },
+  {
+    "supplierId": 5,
+    "storeId": 17,
+    "distanceKm": 133.54,
+    "drivingMinutes": 103.04
+  },
+  {
+    "supplierId": 5,
+    "storeId": 18,
+    "distanceKm": 167.09,
+    "drivingMinutes": 125.76
+  },
+  {
+    "supplierId": 5,
+    "storeId": 19,
+    "distanceKm": 36.44,
+    "drivingMinutes": 30.12
+  },
+  {
+    "supplierId": 5,
+    "storeId": 20,
+    "distanceKm": 110.15,
+    "drivingMinutes": 84.36
+  },
+  {
+    "supplierId": 5,
+    "storeId": 21,
+    "distanceKm": 104.32,
+    "drivingMinutes": 79.03
+  },
+  {
+    "supplierId": 5,
+    "storeId": 22,
+    "distanceKm": 112.65,
+    "drivingMinutes": 86.36
+  },
+  {
+    "supplierId": 5,
+    "storeId": 23,
+    "distanceKm": 99.65,
+    "drivingMinutes": 76.38
+  },
+  {
+    "supplierId": 5,
+    "storeId": 24,
+    "distanceKm": 41.1,
+    "drivingMinutes": 35.21
+  },
+  {
+    "supplierId": 5,
+    "storeId": 25,
+    "distanceKm": 106.2,
+    "drivingMinutes": 80.34
+  },
+  {
+    "supplierId": 5,
+    "storeId": 26,
+    "distanceKm": 98.94,
+    "drivingMinutes": 74.84
+  },
+  {
+    "supplierId": 5,
+    "storeId": 27,
+    "distanceKm": 135.6,
+    "drivingMinutes": 105.72
+  },
+  {
+    "supplierId": 6,
+    "storeId": 1,
+    "distanceKm": 61.96,
+    "drivingMinutes": 56.97
+  },
+  {
+    "supplierId": 6,
+    "storeId": 2,
+    "distanceKm": 73.58,
+    "drivingMinutes": 69.53
+  },
+  {
+    "supplierId": 6,
+    "storeId": 3,
+    "distanceKm": 108.6,
+    "drivingMinutes": 94.79
+  },
+  {
+    "supplierId": 6,
+    "storeId": 4,
+    "distanceKm": 128.92,
+    "drivingMinutes": 109.07
+  },
+  {
+    "supplierId": 6,
+    "storeId": 5,
+    "distanceKm": 74.08,
+    "drivingMinutes": 62.4
+  },
+  {
+    "supplierId": 6,
+    "storeId": 6,
+    "distanceKm": 77.21,
+    "drivingMinutes": 70.03
+  },
+  {
+    "supplierId": 6,
+    "storeId": 7,
+    "distanceKm": 26.29,
+    "drivingMinutes": 23.57
+  },
+  {
+    "supplierId": 6,
+    "storeId": 8,
+    "distanceKm": 84.98,
+    "drivingMinutes": 70.55
+  },
+  {
+    "supplierId": 6,
+    "storeId": 9,
+    "distanceKm": 100.84,
+    "drivingMinutes": 81.39
+  },
+  {
+    "supplierId": 6,
+    "storeId": 10,
+    "distanceKm": 125.29,
+    "drivingMinutes": 100.17
+  },
+  {
+    "supplierId": 6,
+    "storeId": 11,
+    "distanceKm": 122.19,
+    "drivingMinutes": 105.56
+  },
+  {
+    "supplierId": 6,
+    "storeId": 12,
+    "distanceKm": 59.95,
+    "drivingMinutes": 52.3
+  },
+  {
+    "supplierId": 6,
+    "storeId": 13,
+    "distanceKm": 66.26,
+    "drivingMinutes": 60.83
+  },
+  {
+    "supplierId": 6,
+    "storeId": 14,
+    "distanceKm": 43.58,
+    "drivingMinutes": 44.67
+  },
+  {
+    "supplierId": 6,
+    "storeId": 15,
+    "distanceKm": 70.39,
+    "drivingMinutes": 58.94
+  },
+  {
+    "supplierId": 6,
+    "storeId": 16,
+    "distanceKm": 62.53,
+    "drivingMinutes": 56.13
+  },
+  {
+    "supplierId": 6,
+    "storeId": 17,
+    "distanceKm": 36.37,
+    "drivingMinutes": 31.13
+  },
+  {
+    "supplierId": 6,
+    "storeId": 18,
+    "distanceKm": 43.58,
+    "drivingMinutes": 43.38
+  },
+  {
+    "supplierId": 6,
+    "storeId": 19,
+    "distanceKm": 137.18,
+    "drivingMinutes": 108.91
+  },
+  {
+    "supplierId": 6,
+    "storeId": 20,
+    "distanceKm": 60.87,
+    "drivingMinutes": 51.13
+  },
+  {
+    "supplierId": 6,
+    "storeId": 21,
+    "distanceKm": 79.85,
+    "drivingMinutes": 71.09
+  },
+  {
+    "supplierId": 6,
+    "storeId": 22,
+    "distanceKm": 65.18,
+    "drivingMinutes": 61.36
+  },
+  {
+    "supplierId": 6,
+    "storeId": 23,
+    "distanceKm": 70.79,
+    "drivingMinutes": 57.79
+  },
+  {
+    "supplierId": 6,
+    "storeId": 24,
+    "distanceKm": 139.06,
+    "drivingMinutes": 109.04
+  },
+  {
+    "supplierId": 6,
+    "storeId": 25,
+    "distanceKm": 69.14,
+    "drivingMinutes": 64.42
+  },
+  {
+    "supplierId": 6,
+    "storeId": 26,
+    "distanceKm": 70.62,
+    "drivingMinutes": 58.67
+  },
+  {
+    "supplierId": 6,
+    "storeId": 27,
+    "distanceKm": 38.21,
+    "drivingMinutes": 33.38
+  }
+]
