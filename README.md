@@ -44,6 +44,9 @@ Configure **either** `AWS_BEARER_TOKEN_BEDROCK` **or** AWS access key / secret /
 
 ## A five-minute demonstration
 
+The main workspace keeps only the active incident, key totals, map/agent, supplier split and store deliveries visible. Expand the incident queue, supplier eligibility, scenario controls or evidence when needed. Use the [five-minute video script](docs/DEMO_VIDEO_SCRIPT.md) for architecture, reasoning and data-provenance narration.
+
+
 1. Expand **Start with a customer report**. Select Target · San Francisco and submit the editable fictional report with lot `DEMO-P1-BLEND-A`.
 2. Watch the case be saved and Bedrock extract the product and lot. Code verifies the literal lot and its shipment to the selected store. The new report is linked to existing synthetic lab/recall evidence; it does not create an official recall.
 3. Click **Trace & find replacements**. Watch actual tool activity: verify recall → inspect dependencies → assess products → set scenario → optimize recovery. The generated proposal is stored on the server.

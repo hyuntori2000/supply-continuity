@@ -58,6 +58,10 @@ The deploy script builds/publishes the frontend through Amplify manual deploymen
 
 The script currently targets `us-east-1`, resource names `supply-continuity-api`, `supply-continuity-data`, `supply-continuity-runtime`, and the configured Amplify app. Do not run multiple copies against those same names for different applications. Use separate resource names/accounts for independent environments. It provisions AWS resources and incurs ordinary usage charges.
 
+## Publish frontend-only updates
+
+Run `npm run publish:frontend --prefix aws` after reviewing a UI change. This rebuilds and publishes the static app using the saved isolated API configuration. It does not modify Lambda, API routes, IAM policies or DynamoDB.
+
 ## Pause and resume without deleting data
 
 ```sh
