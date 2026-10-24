@@ -54,3 +54,8 @@ yarn-error.log*
 !/frontend/.env.example
 /frontend/*.zip
 /frontend/.test-build/
+
+# AWS builds and private deployment state
+/aws/node_modules/
+/aws/dist/
+/aws/.local/

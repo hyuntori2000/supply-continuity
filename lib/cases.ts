@@ -1,4 +1,4 @@
-import {env} from 'cloudflare:workers';
+import {listCaseRows,getCaseRow,createCaseRow,updateCaseRow} from './case-storage';
 import {AwsClient} from 'aws4fetch';
 import {z} from 'zod';
 import {bedrockConfig,novaSchema} from './bedrock-continuity';
@@ -6,16 +6,15 @@ import {stores,report} from './continuity';
 import {logEvent} from './workflow';
 import raw from './data/dataset.json';
 
-const database=()=>{if(!env.DB)throw new Error('DATABASE_UNAVAILABLE');return env.DB;};
 const extractionSchema=z.object({product:z.string().max(160).nullable(),lotCode:z.string().max(80).nullable(),summary:z.string().min(1).max(600)});
 export type IntakeCase={id:string;storeId:number;storeName:string;report:string;status:string;extraction:z.infer<typeof extractionSchema>|null;createdAt:string;error?:string};
 function shape(row:any):IntakeCase{return {id:row.id,storeId:row.store_id,storeName:row.store_name,report:row.report,status:row.status,extraction:row.extraction?JSON.parse(row.extraction):null,createdAt:row.created_at};}
-export async function listCases(){const r=await database().prepare('SELECT * FROM intake_cases ORDER BY created_at DESC LIMIT 12').all();return r.results.map(shape);}
-export async function getCase(id:string){const row=await database().prepare('SELECT * FROM intake_cases WHERE id=?').bind(id).first();return row?shape(row):null;}
+export async function listCases(){return (await listCaseRows()).map(shape);}
+export async function getCase(id:string){const row=await getCaseRow(id);return row?shape(row):null;}
 export async function submitCase(storeId:number,text:string){
  const st=stores.find(s=>s.id===storeId);if(!st)throw new Error('UNKNOWN_STORE');
  const id=crypto.randomUUID(),createdAt=new Date().toISOString(),storeName=`${st.chain} · ${st.city}`;
- await database().prepare('INSERT INTO intake_cases (id,store_id,store_name,report,status,created_at) VALUES (?,?,?,?,?,?)').bind(id,storeId,storeName,text,'received',createdAt).run();
+ await createCaseRow({id,store_id:storeId,store_name:storeName,report:text,status:'received',created_at:createdAt});
  await logEvent('case_received',{caseId:id,storeId,simulation:true});
  return {id,storeId,storeName,report:text,status:'received',extraction:null,createdAt} satisfies IntakeCase;
 }
@@ -36,7 +35,7 @@ export async function analyzeCase(id:string){
  const lot=raw.tables.lots.find(l=>l.lot_code===normalized);
  const storeAffected=!!lot&&raw.tables.shipments.some(s=>s.lot_id===lot.id&&s.to_store_id===item.storeId);
  const status=supplied&&affectedLot&&storeAffected?'linked':'needs_records';
- await database().prepare('UPDATE intake_cases SET extraction=?,status=?,model=? WHERE id=?').bind(JSON.stringify(extraction),status,c.model,id).run();
+ await updateCaseRow(id,JSON.stringify(extraction),status,c.model);
  await logEvent('case_assessed',{caseId:id,status,model:c.model,lotCode:extraction.lotCode,explanation:status==='linked'?'Linked to existing synthetic recall evidence; report itself is not proof of contamination.':'Missing or unmatched lot/store evidence. No recovery triggered.'});
  return {...item,status,extraction};
 }

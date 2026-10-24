@@ -2,8 +2,8 @@ import {AwsClient} from 'aws4fetch';
 import {env} from 'cloudflare:workers';
 import {z} from 'zod';
 import {allOffers,report,matchSchema,catalogMatches,scenarioSchema,trace,inspectOffers,optimize,stressTest,narrative, type Scenario, type Matches, type RecoveryPlan} from './continuity';
-export function bedrockConfig(){const v=(k:string)=>String((env as unknown as Record<string,unknown>)[k]||process.env[k]||'');return {bearerToken:v('AWS_BEARER_TOKEN_BEDROCK'),region:v('AWS_DEFAULT_REGION')||'us-east-1',model:v('BEDROCK_MODEL_ID')||'amazon.nova-pro-v1:0',accessKeyId:v('AWS_ACCESS_KEY_ID'),secretAccessKey:v('AWS_SECRET_ACCESS_KEY'),sessionToken:v('AWS_SESSION_TOKEN')};}
-export function bedrockStatus(){const c=bedrockConfig();return {provider:'Amazon Bedrock',model:c.model,configured:!!(c.bearerToken||(c.accessKeyId&&c.secretAccessKey)),authMode:c.bearerToken?'Bedrock API key':'AWS session credentials',region:c.region};}
+export function bedrockConfig(){const v=(k:string)=>String((env as unknown as Record<string,unknown>)[k]||process.env[k]||'');return {bearerToken:v('AWS_BEARER_TOKEN_BEDROCK'),region:v('AWS_DEFAULT_REGION')||v('AWS_REGION')||'us-east-1',model:v('BEDROCK_MODEL_ID')||'amazon.nova-pro-v1:0',accessKeyId:v('AWS_ACCESS_KEY_ID'),secretAccessKey:v('AWS_SECRET_ACCESS_KEY'),sessionToken:v('AWS_SESSION_TOKEN')};}
+export function bedrockStatus(){const c=bedrockConfig();return {provider:'Amazon Bedrock',model:c.model,configured:!!(c.bearerToken||(c.accessKeyId&&c.secretAccessKey)),authMode:c.bearerToken?'Bedrock API key':process.env.AWS_LAMBDA_FUNCTION_NAME?'AWS Lambda execution role':'AWS session credentials',region:c.region};}
 export function novaSchema(schema:z.ZodType){const {type,properties,required}=z.toJSONSchema(schema,{target:'draft-7'}) as any;return {type,properties,required};}
 export type AgentEvent={type:string;[key:string]:unknown};
 export async function runContinuityAgent(message:string,initial:Scenario,source:string,emit:(e:AgentEvent)=>void){

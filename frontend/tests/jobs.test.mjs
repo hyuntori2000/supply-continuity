@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ts from 'typescript';
+const source=fs.readFileSync(new URL('../src/api/jobs.ts',import.meta.url),'utf8');
+const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+const {finishJob}=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
+const initial=kind=>Response.json({jobId:'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',kind},{status:202});
+test('durable agent job reconstructs tool events and final plan',async()=>{let called='';const response=await finishJob(initial('agent'),async path=>{called=path;return Response.json({status:'completed',cursor:2,events:[{type:'tool_start',name:'verify_recall'},{type:'final',plan:{allocated:1220}}]});});const events=(await response.text()).trim().split('\n').map(JSON.parse);assert.match(called,/after=0$/);assert.equal(events[1].plan.allocated,1220);});
+test('case job unwraps persisted analysis result',async()=>{const r=await finishJob(initial('case'),async()=>Response.json({status:'completed',result:{status:'linked'},cursor:0}));assert.equal((await r.json()).status,'linked');});
+test('failed jobs never become a successful AI result',async()=>{const r=await finishJob(initial('agent'),async()=>Response.json({status:'failed',cursor:0,events:[],error:'Bedrock unavailable'}));assert.equal(JSON.parse((await r.text()).trim()).type,'error');await assert.rejects(()=>finishJob(initial('case'),async()=>Response.json({status:'failed',error:'Bedrock unavailable'})),/Bedrock unavailable/);});
+test('normal responses stay compatible with non-AWS backends',async()=>{const response=Response.json({ok:true});assert.equal(await finishJob(response,async()=>{throw new Error('Should not poll');}),response);});

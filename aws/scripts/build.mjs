@@ -1,0 +1,10 @@
+import {build} from 'esbuild';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {mkdirSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+mkdirSync(path.join(root,'dist'),{recursive:true});
+await build({entryPoints:[path.join(root,'src/handler.ts')],outfile:path.join(root,'dist/handler.mjs'),bundle:true,platform:'node',target:'node22',format:'esm',nodePaths:[path.join(root,'node_modules')],plugins:[{name:'aws-adapters',setup(b){b.onResolve({filter:/^cloudflare:workers$/},()=>({path:path.join(root,'src/env.ts')}));b.onResolve({filter:/^(?:@\/lib\/|\.\/)(workflow|case-storage)$/},args=>({path:path.join(root,'src',args.path.split('/').pop()+'.ts')}));b.onResolve({filter:/^@\//},args=>({path:path.resolve(root,'..',args.path.slice(2)+'.ts')}));}}]});
+execFileSync('zip',['-q','-j',path.join(root,'dist/function.zip'),path.join(root,'dist/handler.mjs')]);
+console.log('Built aws/dist/function.zip (shared engine + Bedrock + AWS persistence).');
