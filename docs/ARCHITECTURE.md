@@ -19,7 +19,7 @@ flowchart TD
  S --> O
  O --> UI[Map, quantities, shortages, ETA, stress test]
  UI --> H[Human approve or reject]
- H --> DB[(D1 proposals and audit events)]
+ H --> DB[(DynamoDB proposals and audit events)]
  DB --> UI
 ```
 
@@ -33,9 +33,12 @@ The optimizer uses minimum-cost flow. Dummy shortage edges keep infeasible plans
 
 ## Persistence
 
-- `intake_cases`: original report, selected store, extracted fields, model, matching status.
-- `recovery_plans`: scenario, assessments, computed plan, fingerprint, source and decision.
-- `workflow_events`: timestamped case, tool and review events.
+- DynamoDB `CASE`: original report, selected store, extracted fields, model, matching status.
+- DynamoDB `PLAN`: scenario, assessments, computed plan, fingerprint, source and decision.
+- DynamoDB `EVENT`: timestamped case, tool and review events.
+- DynamoDB `JOB` / `JOBEVENT`: asynchronous inference status and browser-pollable tool output; TTL enabled.
+
+The original Sites adapter uses the separate D1 tables `intake_cases`, `recovery_plans` and `workflow_events`. Those are not the deployed AWS storage.
 
 A proposal survives refresh in storage. The initial visual plan resets to the catalog scenario on reload; the timeline and case inbox retain prior activity. Approval is a reviewed proposal, not a stock reservation. The system must be connected to atomic inventory reservation and real authorization before operational use.
 
@@ -45,7 +48,11 @@ All durations start after assumed approval. Delivery ETA includes fixed supplier
 
 ## Infrastructure
 
-The current web runtime is a Cloudflare Worker provisioned through Sites, with D1 persistence. AWS Bedrock runs the actual inference in the configured AWS account. This demo does not use a live RDS connection, AWS-managed Agents for Bedrock, or a Knowledge Base. Do not draw these as implemented services in the video.
+The current web frontend is React/Vite on AWS Amplify. A dedicated API Gateway invokes Lambda, which stores application state in DynamoDB and invokes Bedrock using its execution role. Inference is queued to an asynchronous Lambda invocation and polled by the browser. The original Sites/Cloudflare/D1 runtime is a separate earlier deployment. This demo does not use a live RDS connection, AWS-managed Agents for Bedrock, or a Knowledge Base. Do not draw these as implemented services in the video.
+
+## Same-chain store recovery
+
+Opt-in transfer edges add same-chain retail stores as sources in the same flow graph. Only exact-product released/unexpired lots with verified cold chain and mock transfer approval qualify. Store-level source capacity protects reservations plus target days of cover across all its lot nodes. Current recipients cannot donate; inbound/new allocations are never re-exported. Directional OSRM routes provide distance and modeled ETA; transfers have a 120-minute cap. The UI distinguishes supplier and store quantities. See README for verified snapshot comparisons.
 
 ## Incident priority policy
 

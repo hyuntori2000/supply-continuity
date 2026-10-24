@@ -5,6 +5,7 @@ import {bedrockConfig,novaSchema} from './bedrock-continuity';
 import {stores,report} from './continuity';
 import {logEvent} from './workflow';
 import raw from './data/dataset.json';
+import {hasExactIdentifier} from './evidence';
 
 const extractionSchema=z.object({product:z.string().max(160).nullable(),lotCode:z.string().max(80).nullable(),summary:z.string().min(1).max(600)});
 export type IntakeCase={id:string;storeId:number;storeName:string;report:string;status:string;extraction:z.infer<typeof extractionSchema>|null;createdAt:string;error?:string};
@@ -30,7 +31,7 @@ export async function analyzeCase(id:string){
  const extraction=extractionSchema.parse(use?.input);
  // A generated lot is never enough. Verify its literal presence and known shipment to this store.
  const normalized=extraction.lotCode?.toUpperCase()||'';
- const supplied=!!normalized&&item.report.toUpperCase().includes(normalized);
+ const supplied=!!normalized&&hasExactIdentifier(item.report,normalized);
  const affectedLot=['DEMO-P1-RAW-A','DEMO-P1-BLEND-A'].includes(normalized);
  const lot=raw.tables.lots.find(l=>l.lot_code===normalized);
  const storeAffected=!!lot&&raw.tables.shipments.some(s=>s.lot_id===lot.id&&s.to_store_id===item.storeId);

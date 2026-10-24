@@ -52,13 +52,15 @@ export async function handler(event:any){
   else if(!authenticated(headers.authorization))response=json({error:'Enter the team demo access code.'},401);
   else{
    const body=event.isBase64Encoded?Buffer.from(event.body||'','base64').toString('utf8'):(event.body||'');
+   let parsedBody:any,invalidJson=false;if(method==='POST'&&body.length<=16000){try{parsedBody=JSON.parse(body||'{}');}catch{invalidJson=true;}}
    if(body.length>16000)response=json({error:'Request too large'},413);
+   else if(invalidJson)response=json({error:'Invalid JSON request body'},400);
    else if(path.startsWith('/api/jobs/')&&method==='GET'){
     const id=path.slice('/api/jobs/'.length),after=Number(event.queryStringParameters?.after||0);
     response=/^[\da-f-]{36}$/.test(id)&&Number.isSafeInteger(after)&&after>=0?await pollJob(id,after):json({error:'Invalid job'},400);
-   }else if(method==='POST'&&(path==='/api/agent'||path==='/api/cases'&&JSON.parse(body||'{}').action==='analyze')){
+   }else if(method==='POST'&&(path==='/api/agent'||path==='/api/cases'&&parsedBody?.action==='analyze')){
     const schema=path==='/api/agent'?z.object({message:z.string().min(1).max(2000),scenario:scenarioSchema,caseId:z.string().uuid().optional(),source:z.string().min(1).max(8000)}):z.object({action:z.literal('analyze'),id:z.string().uuid()});
-    const validated=schema.safeParse(JSON.parse(body));response=validated.success?await startJob(path,JSON.stringify(validated.data)):json({error:'Invalid AI request'},400);
+    const validated=schema.safeParse(parsedBody);response=validated.success?await startJob(path,JSON.stringify(validated.data)):json({error:'Invalid AI request'},400);
    }else response=await dispatch(path,method,body);
   }
  }catch(e){console.error(JSON.stringify({path,error:(e as Error).name}));response=json({error:'Request failed. Check the request format and server logs.'},500);}

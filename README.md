@@ -65,7 +65,7 @@ The main workspace keeps only the active incident, key totals, map/agent, suppli
 6. Compare completion estimates, inspect the shortage, and review or reject the proposal. Approval with a shortage requires acknowledgment. An approval is a persisted demo decision, not a real order, reservation or dispatch.
 7. Switch to **Regulator** to inspect evidence distinctions. Export the decision brief. Reload and see the server-persisted timeline and case inbox.
 
-See [the recording script](docs/DEMO_SCRIPT.md) and [architecture](docs/ARCHITECTURE.md).
+See [the current AWS recording script](docs/DEMO_VIDEO_SCRIPT.md) and [architecture](docs/ARCHITECTURE.md).
 
 ## What makes the decision useful
 
@@ -81,9 +81,9 @@ See [the recording script](docs/DEMO_SCRIPT.md) and [architecture](docs/ARCHITEC
 
 ## Actual architecture and scope
 
-React/Vinext + Leaflet → server endpoints → Amazon Bedrock Converse → deterministic dependency/allocation engine → human review → D1 workflow database. Bedrock is the only inference provider in the active application. Tool output quantities, not model arithmetic, produce the final numerical summary.
+The current submission runs React/Vite + Leaflet on AWS Amplify → API Gateway → Lambda API / asynchronous worker → Amazon Bedrock Converse → deterministic allocation → human review → DynamoDB. Bedrock is the only inference provider in the active application. Tool output quantities, not model arithmetic, produce the final numerical summary.
 
-The hosted preview uses Sites/Cloudflare Workers and D1, **not an AWS-hosted web server or live RDS integration**. The team's PostgreSQL/RDS project can reuse the API and schema mapping in [the integration guide](docs/TEAM_INTEGRATION.md). No new AWS infrastructure is required by this demo. Workshop/team Kiro usage must be described truthfully in the submission; this repository does not establish that requirement by itself.
+The original Sites preview and root Vinext app retain Cloudflare Workers/D1 adapters; they are separate from the current AWS submission. No live RDS connection is implemented. The team's PostgreSQL/RDS project can reuse [the integration guide](docs/TEAM_INTEGRATION.md). The team reports using Kiro; describe the actual Kiro work in the video rather than inferring it from this repository.
 
 The Retailer/Regulator toggle is a presentation view, not tenant authorization. The original hosted site is private; the GitHub repository is public. Site access is separate from repository access. UI notices are internal; no email, SMS, purchase or physical shipment integrations are connected.
 
@@ -96,12 +96,12 @@ Supplier-facility edges are operational dependencies, not routed waypoints. OSRM
 | `lib/continuity.ts` | Evidence, offers, dependency constraints, normalized allocation, stress tests and timing |
 | `lib/bedrock-continuity.ts` | Bedrock tool loop, schema validation and gated tool access |
 | `lib/cases.ts` | Persisted case intake, Bedrock extraction, exact lot/store matching |
-| `lib/workflow.ts` | Proposal storage, audit events and guarded decisions |
+| `aws/src/workflow.ts` | Current DynamoDB proposal storage, audit events and guarded decisions |
 | `app/api/` | Server contracts for cases, planning, agent and workflow |
 | `components/case-intake.tsx` | Customer report → case inbox → investigation |
 | `components/continuity-map.tsx` | Supplier-to-store map and quantities |
 | `components/dependency-graph.tsx` | Shared fulfillment failure explanation |
-| `db/schema.ts`, `drizzle/` | Active D1 schema and immutable migration history |
+| `db/schema.ts`, `drizzle/` | Original Sites D1 schema and migration history |
 | `lib/data/` | Data snapshot and route provenance |
 
 ## Checks

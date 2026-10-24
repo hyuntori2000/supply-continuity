@@ -49,3 +49,10 @@ flowchart LR
 ## Before recording
 
 Use the live AWS URL, not local simulation. Start with **Recall only** under **Scenario controls** if the previous run closed a warehouse. Record actual tool activity; never present a catalog recalculation as an AI run. Keep the **Synthetic demo** badge visible. Capture the real run's numbers, which may vary with the validated AI product assessment. Reserve the final screen for your actual team name and contact channel.
+
+
+## Submission evidence still supplied by the team
+
+The team confirmed that Kiro was used; add one truthful sentence naming the work performed with Kiro (for example, only name backend implementation or testing if that is what actually happened). This audit did not independently inspect Kiro history. Add the organizer-approved team contact and verify submission access. The five-minute video itself has not been recorded or reviewed by this audit.
+
+The application aggregates several chains. Explain Maya's regional coordination remit and any chain-specific decision scope; do not imply one retailer can authorize another retailer's inventory. The current views are demo presentations, not tenant authorization. Neither real user research nor real incident outcomes were verified.

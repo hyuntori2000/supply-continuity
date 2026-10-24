@@ -17,6 +17,11 @@ globalThis.fetch=async(input,init)=>{
 function event(path,method='GET',body,headers={}){return {rawPath:path,requestContext:{http:{method}},headers:{authorization:'Bearer test-team-code',origin:'https://team.example',...headers},body:body===undefined?undefined:JSON.stringify(body)};}
 const parse=r=>JSON.parse(r.body);
 test('unauthenticated and foreign-origin requests cannot invoke paid AI',async()=>{const before=calls;assert.equal((await handler(event('/api/agent','POST',{}, {authorization:''}))).statusCode,401);assert.equal((await handler(event('/api/agent','POST',{}, {origin:'https://foreign.example'}))).statusCode,403);assert.equal(calls,before);});
+test('malformed or null inference requests are rejected before any AWS work',async()=>{
+ const before=calls;const malformed=event('/api/agent','POST');malformed.body='{invalid';assert.equal((await handler(malformed)).statusCode,400);
+ assert.equal((await handler(event('/api/agent','POST',null))).statusCode,400);
+ assert.equal((await handler(event('/api/cases','POST',null))).statusCode,400);assert.equal(calls,before);
+});
 test('health is public and read-only, API returns real engine data',async()=>{assert.equal((await handler(event('/health','GET',undefined,{authorization:''}))).statusCode,200);const r=await handler(event('/api/continuity'));assert.equal(r.statusCode,200);assert.equal(parse(r).initial.allocated,1220);});
 let plan;
 test('plan persists and approval enforces hash + single terminal decision',async()=>{const overview=parse(await handler(event('/api/continuity')));plan=parse(await handler(event('/api/continuity','POST',{scenario:overview.initial.scenario})));assert.ok(plan.id);const base={action:'decide',id:plan.id,hash:plan.hash,decision:'approved',note:'Test approval',acknowledgeShortage:false};assert.equal((await handler(event('/api/workflow','POST',{...base,hash:'0'.repeat(64)}))).statusCode,409);assert.equal(parse(await handler(event('/api/workflow','POST',base))).status,'approved');assert.equal(parse(await handler(event('/api/workflow','POST',base))).idempotent,true);assert.equal((await handler(event('/api/workflow','POST',{...base,decision:'rejected'}))).statusCode,409);const h=parse(await handler(event('/api/workflow')));assert.equal(h.events.filter(e=>e.kind==='plan_approved').length,1);});
